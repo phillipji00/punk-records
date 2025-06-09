@@ -1,0 +1,197 @@
+openapi: 3.0.0
+info:
+  title: Syndicate Vault API
+  version: 1.3.0
+  description: API segura e tipada para gerenciar a memória persistente e a inteligência do agente Syndicate.
+
+#-----------------------------------------------------------------
+# Seção de Componentes Reutilizáveis
+#-----------------------------------------------------------------
+components:
+  # Esquema de segurança: o agente precisa enviar um token para se autenticar.
+  securitySchemes:
+    PersonalAccessToken:
+      type: http
+      scheme: bearer
+      description: "Um token de acesso pessoal de longa duração gerado para o agente."
+  
+  # Esquemas de dados para reutilização
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: "Uma mensagem clara descrevendo o erro."
+      example:
+        error: "O campo 'tipo_registro' é obrigatório e deve ser um dos valores permitidos."
+
+#-----------------------------------------------------------------
+# Aplica a segurança a todos os endpoints, exceto os públicos.
+#-----------------------------------------------------------------
+security:
+  - PersonalAccessToken: []
+
+paths:
+  #-----------------------------------------------------------------
+  # NOVO ENDPOINT: Status da API (Sugestão 2)
+  #-----------------------------------------------------------------
+  /health:
+    get:
+      summary: Verifica o status operacional da API
+      description: Endpoint público para monitoramento e verificação de saúde do serviço.
+      security: [] # Anula a segurança global para este endpoint
+      responses:
+        '200':
+          description: A API está operacional.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "operational"
+  
+  #-----------------------------------------------------------------
+  # ENDPOINT ATUALIZADO: /ingest
+  #-----------------------------------------------------------------
+  /ingest:
+    post:
+      summary: Ingestiona um novo registro tipado no Vault.
+      description: Recebe um tipo de registro e um objeto de dados estruturado, e o salva no arquivo de memória correto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                # ATUALIZADO: Mais seguro e tipado que "arquivo_alvo"
+                tipo_registro:
+                  type: string
+                  description: "Define o tipo de dado a ser salvo."
+                  enum: [hipotese, evidencia, perfil_personagem, entrada_timeline, registro_misc]
+                # ATUALIZADO: Agora usa um enum com IDs do agent-config
+                autor:
+                  type: string
+                  description: "O ID do especialista que gerou o conteúdo."
+                  enum: [estrategista_chefe, analista_forense, analista_comportamental, analista_espacial, orquestrador_missao]
+                dados:
+                  type: object
+                  description: "Um objeto contendo os dados estruturados para o registro."
+              required:
+                - tipo_registro
+                - dados
+                - autor
+            examples:
+              nova_hipotese:
+                summary: Exemplo de uma nova hipótese de L
+                value:
+                  tipo_registro: "hipotese"
+                  autor: "estrategista_chefe"
+                  dados:
+                    id: "H-06"
+                    descricao: "A rede antagonista está criando um engodo."
+                    probabilidade: 60
+      responses:
+        # ATUALIZADO: Resposta mais rica e código semanticamente correto
+        '201':
+          description: Registro criado e arquivado com sucesso no Vault.
+          headers:
+            Location:
+              description: "A URL onde o recurso (ou o arquivo atualizado) pode ser encontrado."
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: 
+                    type: string
+                    example: "created"
+                  id_registro:
+                    type: string
+                    example: "hipotese:H-06"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    readOnly: true
+        '400':
+          description: Pedido mal formatado ou com dados inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
+  #-----------------------------------------------------------------
+  # ENDPOINT ATUALIZADO: /search
+  #-----------------------------------------------------------------
+  /search:
+    get:
+      summary: Busca por um termo ou tag na memória do Vault.
+      description: Retorna trechos de texto relevantes que correspondem ao termo de busca.
+      parameters:
+        - name: tag
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "O termo a ser pesquisado."
+        # NOVO: Filtro por tipo de registro
+        - name: tipo_registro
+          in: query
+          schema:
+            type: string
+            enum: [hipotese, evidencia, perfil_personagem, entrada_timeline, todos]
+            default: todos
+          description: "Filtra a busca por um tipo de registro específico."
+        # ATUALIZADO: Paginação mais robusta
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50 # Limite máximo para evitar abuso
+          description: "O número máximo de resultados."
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: "O deslocamento para paginação."
+      responses:
+        '200':
+          description: Retorna uma lista de trechos encontrados.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  # NOVO: Informação total para a UI
+                  total_count:
+                    type: integer
+                    example: 23
+                  snippets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        texto:
+                          type: string
+                        fonte:
+                          type: string
+                        autor:
+                          type: string
+                        # NOVO: Campo para ranking de relevância futuro
+                        match_score:
+                          type: number
+                          format: float
+                          example: 0.92
+        '404':
+          description: Nenhum resultado encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

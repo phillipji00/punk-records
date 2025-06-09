@@ -1,0 +1,93 @@
+version: 3.4
+# =============================================================
+# Arquivo de Configuração Mestre para o Agente "Syndicate"
+# Foco: Investigação de Elite com Lógica Avançada
+# Changelog v3.4: Adicionada tarefa de recomendação estratégica para o Orquestrador.
+# =============================================================
+
+# Define o comportamento padrão do matching de triggers para o Orquestrador.
+matching_defaults:
+  mode: contains
+  case_sensitive: false
+
+# Define a equipe de especialistas investigativos do Syndicate.
+syndicate_team:
+  - id: orquestrador_missao
+    titulo: Líder e Orquestrador do Syndicate
+    nome_codigo: Capitão Akitaru Obi
+    divisao: comando
+    descricao: "Ponto de contato principal com Simon. Analisa, delega, modera e recomenda os próximos passos."
+    persona_ref: "personas.txt#obi"
+    tasks:
+      - id: exportar_dossie_completo
+        title: "Exportar Dossiê Completo"
+        triggers: ["protocolo de seguranca", "exportar", "salvar o estado"]
+      - id: moderar_reuniao_emergencia
+        title: "Moderar Reunião de Emergência"
+        triggers: ["reuniao de emergencia", "forca-tarefa", "colaborem", "analise conjunta", "discutam entre si"]
+      - id: refinar_analise_anterior
+        title: "Refinar Análise Anterior"
+        triggers: ["critique essa analise", "segunda opiniao", "desafie isso", "elabore melhor", "validacao cruzada"]
+      - id: recomendar_proximo_passo
+        title: "Recomendar Próximo Passo"
+        triggers: ["o que voce recomenda", "qual o proximo passo", "me ajude", "estou travado", "sugestoes"]
+
+  - id: estrategista_chefe
+    titulo: Estratega Chefe e Mestre do Meta-Jogo
+    nome_codigo: L Lawliet
+    divisao: analise_estrategica
+    descricao: "Desenvolve múltiplos cenários preditivos e planeja contra-medidas."
+    persona_ref: "personas.txt#l"
+    tasks:
+      - id: gerar_analise_cenarios_preditivos
+        title: "Gerar Análise de Cenários Preditivos"
+        triggers: ["hipotese", "teoria", "analise estrategica", "plano", "o que fazemos agora", "estou perdido", "proximo passo", "algo nao faz sentido"]
+    checklists:
+      - checklist_ref: "checklists.txt#advogado_do_diabo"
+        trigger_mode: "on-demand" 
+        triggers: ["valide a hipotese", "certeza disso", "teste de estresse"]
+
+  - id: analista_forense_historiador_geopolitico
+    titulo: Analista Forense e Historiador Geopolítico
+    nome_codigo: Senku Ishigami
+    divisao: analise_evidencias_geopolitica
+    descricao: "Realiza análises científicas de evidências e mapeia a história de territórios, reinos e impérios."
+    persona_ref: "personas.txt#senku"
+    tasks:
+      - id: analisar_evidencia
+        title: "Analisar Evidência"
+        triggers: ["analise de evidencia", "pista", "documento", "objeto", "simbolo", "codigo"]
+      - id: mapear_historia_geopolitica
+        title: "Mapear História Geopolítica"
+        triggers: ["historia do reino", "mapa antigo", "evolucao dos territorios", "geografia historica", "quem controlava esta regiao", "contexto historico", "cronologia de eventos"]
+    checklists:
+      - checklist_ref: "checklists.txt#analise_forense_completa"
+        trigger_mode: "always"
+        triggers: ["analise completa", "exame profundo"]
+
+  - id: analista_comportamental_historiador_pessoal
+    titulo: Analista Comportamental e Historiador Genealógico
+    nome_codigo: Norman
+    divisao: analise_psicologica_genealogica
+    descricao: "Cria perfis psicológicos e mantém a linha do tempo de pessoas e árvores genealógicas."
+    persona_ref: "personas.txt#norman"
+    tasks:
+      - id: gerar_perfil_psicologico
+        title: "Gerar Perfil Psicológico"
+        triggers: ["perfil psicologico", "perfil de personagem", "suspeito", "analise a conversa", "motivacoes"]
+      - id: construir_linha_tempo_personagens
+        title: "Construir Linha do Tempo de Personagens"
+        triggers: ["linha do tempo familiar", "arvore genealogica", "historia da familia", "relacoes entre pessoas"]
+    checklists: []
+
+  - id: analista_espacial_e_de_sistemas
+    titulo: Analista Espacial e Especialista em Teoria dos Jogos
+    nome_codigo: Isagi Yoichi
+    divisao: analise_ambiente_sistemas
+    descricao: "Mapeia o ambiente, analisa as 'regras do jogo' e utiliza a teoria dos jogos para prever jogadas."
+    persona_ref: "personas.txt#isagi"
+    tasks:
+      - id: analisar_ambiente_estrategia_jogo
+        title: "Analisar Ambiente e Estratégia de Jogo"
+        triggers: ["mapa", "localizacao", "planta", "inventario", "item", "regras do ambiente", "estrategia otima", "prever a jogada", "teoria dos jogos"]
+    checklists: []

@@ -1,0 +1,8 @@
+# Ignorar dependências do Node
+node_modules
+
+# Ignorar o arquivo de ambiente com segredos
+.env
+
+# Ignorar a pasta de build do TypeScript
+dist
