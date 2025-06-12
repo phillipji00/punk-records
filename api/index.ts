@@ -6,246 +6,154 @@ import Joi from 'joi';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 
-import git from 'isomorphic-git';
-import { createRequire } from 'module';
-import fs from 'fs';
-import { promises as fsPromises } from 'fs';
-import path from 'path';
-import os from 'os';
+// 🚀 NOVA IMPORTAÇÃO: Ferramentas para interagir com o MongoDB
+import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
 
-const require = createRequire(import.meta.url);
-const http = require('isomorphic-git/http/node');
-
-console.log('🔧 DEBUG - Variáveis de ambiente:');
-console.log('GIT_REPO_URL:', process.env.GIT_REPO_URL);
-console.log('GITHUB_TOKEN existe:', !!process.env.GITHUB_TOKEN);
-console.log('GITHUB_TOKEN primeiros 10 chars:', process.env.GITHUB_TOKEN?.substring(0, 10));
-console.log('NODE_ENV:', process.env.NODE_ENV);
+// Verificação de segurança na inicialização
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.error('ERRO FATAL: JWT_SECRET não está configurado no ambiente de produção. Encerrando.');
+  process.exit(1);
+}
+// 🚀 NOVA VERIFICAÇÃO: Garante que a URL do banco de dados exista em produção
+if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+  console.error('ERRO FATAL: DATABASE_URL não está configurada no ambiente de produção. Encerrando.');
+  process.exit(1);
+}
 
 const app = express();
 
 // --- Middlewares ---
-app.use(express.json({ 
-  limit: '10mb'
-}));
+app.use(helmet());
+app.use(cors());
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'tiny' : 'dev'));
+app.use(express.json({ limit: '10mb' }));
 
-// --- Types ---
-interface SearchSnippet {
-  texto: string;
-  fonte: string;
-  linha: number;
+// --- Configuração da Conexão com o MongoDB ---
+// Valida se a DATABASE_URL foi fornecida
+if (!process.env.DATABASE_URL) {
+  console.error("ERRO: A variável de ambiente DATABASE_URL é necessária.");
+  if (process.env.NODE_ENV === 'production') process.exit(1);
 }
 
-// --- Lógica Reutilizável de Git ---
-const getRepo = async (traceId: string): Promise<string> => {
-  const dir = path.join(os.tmpdir(), 'syndicate-vault');
-  
-  if (!process.env.GIT_REPO_URL) {
-    throw new Error('GIT_REPO_URL não configurada');
-  }
+// 🚀 NOVA LÓGICA: Cria uma instância do cliente MongoDB para ser reutilizada
+const client = new MongoClient(process.env.DATABASE_URL!, {
+  serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
+});
 
-  try {
-    const repoExists = await fsPromises.stat(path.join(dir, '.git')).catch(() => false);
+// Conecta ao banco de dados uma vez na inicialização
+client.connect().then(() => {
+    console.log("✅ Conectado com sucesso ao MongoDB Atlas.");
+}).catch(err => {
+    console.error("❌ Falha ao conectar com o MongoDB Atlas.", err);
+    process.exit(1);
+});
 
-    if (repoExists) {
-      console.log(`[${traceId}] Pull existing repo...`);
-      await git.pull({ 
-        fs, 
-        http, 
-        dir,
-        onAuth: () => ({
-          username: process.env.GITHUB_TOKEN!,
-          password: ''
-        }),
-        author: { name: 'Syndicate Agent', email: 'bot@syndicate.dev' },
-        singleBranch: true 
-      });
-    } else {
-      console.log(`[${traceId}] Cloning repo...`);
-      await fsPromises.rm(dir, { recursive: true, force: true });
-      await git.clone({ 
-        fs, 
-        http, 
-        dir, 
-        url: process.env.GIT_REPO_URL,
-        onAuth: () => ({
-          username: process.env.GITHUB_TOKEN!,
-          password: ''
-        }),
-        singleBranch: true, 
-        depth: 1 
-      });
-    }
-    return dir;
-  } catch (error) {
-    console.error(`[${traceId}] Git error:`, error);
-    throw error;
-  }
-};
+const db = client.db("syndicateVault");
+const vaultCollection = db.collection("registros");
 
-// --- Middleware de Autenticação ---
+
+// --- Middleware de Autenticação (Corrigido) ---
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-  if (!process.env.JWT_SECRET) {
-    console.warn('⚠️ JWT_SECRET não configurado - MODO DE DESENVOLVIMENTO');
-    return next();
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ JWT_SECRET não configurado, pulando autenticação em MODO DE DESENVOLVIMENTO.');
+      return next();
+    }
   }
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Token Bearer requerido' });
+    return res.status(401).json({ error: 'Acesso não autorizado. Token Bearer ausente.' });
   }
   const token = authHeader.substring(7);
   try {
-    jwt.verify(token, process.env.JWT_SECRET);
+    jwt.verify(token, secret!);
     next();
-  } catch {
-    res.status(401).json({ error: 'Token inválido' });
+  } catch (err) {
+    res.status(401).json({ error: 'Acesso não autorizado. Token inválido ou expirado.' });
   }
 };
 
 // --- Rotas da API ---
+
 app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ 
     status: 'operational',
-    timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV || 'development',
-    gitConfigured: !!process.env.GIT_REPO_URL,
-    tokenConfigured: !!process.env.GITHUB_TOKEN
+    db_connection_status: client.topology?.s.state || 'connecting',
+    timestamp: new Date().toISOString()
   });
 });
 
-// ROTA DE INGESTÃO COM ENCODING CORRIGIDO
+// 🚀 ROTA /ingest TOTALMENTE REFATORADA
 app.post('/api/ingest', verifyToken, async (req: Request, res: Response) => {
   const schema = Joi.object({
-    tipo_registro: Joi.string().valid('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline').required(),
+    tipo_registro: Joi.string().valid('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline', 'registro_misc', 'cross_validation_result').required(),
     autor: Joi.string().required(),
-    dados: Joi.object({
-      arquivo_alvo: Joi.string().required(),
-      conteudo: Joi.string().required()
-    }).required()
+    dados: Joi.object().required().unknown(true) // Permite qualquer estrutura em 'dados'
   });
   
   const { error } = schema.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
-  const { autor, dados } = req.body;
-  const { arquivo_alvo, conteudo } = dados;
+  const { tipo_registro, autor, dados } = req.body;
   const traceId = Math.random().toString(36).substring(2);
 
-  console.log(`[${traceId}] 🚀 Starting ingest:`, { autor, arquivo_alvo });
+  console.log(`[${traceId}] 🚀 Starting DB ingest:`, { tipo_registro, autor });
 
   try {
-    const repoDir = await getRepo(traceId);
-    const filepath = path.join(repoDir, arquivo_alvo);
+    const novoRegistro = {
+      tipo_registro,
+      autor,
+      dados, // Armazena o objeto de dados completo
+      timestamp: new Date(),
+    };
 
-    // Garantir que o diretório existe
-    await fsPromises.mkdir(path.dirname(filepath), { recursive: true });
-    
-    // CORREÇÃO: Escrita com encoding UTF-8 explícito
-const timestamp = new Date().toISOString();
-const formattedContent = `\n---\n[${timestamp}] ${conteudo}`;
-await fsPromises.writeFile(filepath, Buffer.from(formattedContent, 'utf8'), { flag: 'a' });
-    
-    await git.add({ fs, dir: repoDir, filepath: arquivo_alvo });
-    await git.commit({ 
-      fs, 
-      dir: repoDir, 
-      author: { name: autor, email: 'syndicate@vault.ai' }, 
-      message: `docs: Nova entrada em ${arquivo_alvo} por ${autor}` 
-    });
-    
-    if (!process.env.GITHUB_TOKEN) {
-      throw new Error('GITHUB_TOKEN não configurado');
-    }
-    
-    console.log(`[${traceId}] 🔄 Pushing to GitHub...`);
-    
-    await git.push({ 
-      fs, 
-      http, 
-      dir: repoDir,
-      onAuth: () => ({
-        username: process.env.GITHUB_TOKEN!,
-        password: ''
-      })
-    });
+    const result = await vaultCollection.insertOne(novoRegistro);
 
-    console.log(`[${traceId}] ✅ Success!`);
-    res.status(201).json({ status: "created", traceId });
+    console.log(`[${traceId}] ✅ Success! Inserted ID: ${result.insertedId}`);
+    res.status(201).json({ status: "created", id_registro: result.insertedId.toHexString(), traceId });
     
   } catch (e: any) {
-    console.error(`[${traceId}] ❌ Error:`, e.message);
-    res.status(500).json({ 
-      error: 'Falha na operação Git', 
-      traceId,
-      details: process.env.NODE_ENV === 'development' ? e.message : undefined
-    });
+    console.error(`[${traceId}] ❌ DB Error:`, e.message);
+    res.status(500).json({ error: 'Falha ao salvar no banco de dados', traceId });
   }
 });
 
-// ROTA DE BUSCA COM ENCODING CORRIGIDO
+// 🚀 ROTA /search TOTALMENTE REFATORADA
 app.get('/api/search', verifyToken, async (req: Request, res: Response) => {
   const traceId = Math.random().toString(36).substring(2);
-  const { tag, limit = 10, offset = 0 } = req.query;
+  const { tag, tipo_registro, limit = 10, offset = 0 } = req.query;
 
   if (!tag) {
     return res.status(400).json({ error: 'Parâmetro "tag" é obrigatório' });
   }
-
+  
   try {
-    const repoDir = await getRepo(traceId);
-    const searchDir = path.join(repoDir, 'pandora-box');
+    const query: any = { $text: { $search: tag as string } }; 
+    if (tipo_registro && tipo_registro !== 'todos') {
+      query.tipo_registro = tipo_registro;
+    }
     
-    const dirExists = await fsPromises.stat(searchDir).catch(() => false);
-    if (!dirExists) {
-      return res.status(200).json({ total_count: 0, snippets: [] });
-    }
+    const total_count = await vaultCollection.countDocuments(query);
+    const snippets = await vaultCollection.find(query)
+      .project({ score: { $meta: "textScore" } })
+      .sort({ score: { $meta: "textScore" } })
+      .skip(Number(offset))
+      .limit(Number(limit))
+      .toArray();
 
-    const allFiles = await fsPromises.readdir(searchDir, { recursive: true });
-    let allSnippets: SearchSnippet[] = [];
-    const searchRegex = new RegExp(tag as string, 'i');
-
-    for (const file of allFiles) {
-      if (typeof file === 'string' && file.endsWith('.md')) {
-        const filePath = path.join(searchDir, file);
-        
-        // CORREÇÃO: Leitura com encoding UTF-8 explícito
-const buffer = await fsPromises.readFile(filePath);
-const content = buffer.toString('utf8');
-        const lines = content.split('\n');
-        
-        lines.forEach((line, index) => {
-          if (searchRegex.test(line)) {
-            allSnippets.push({
-              texto: line.trim(),
-              fonte: path.join('pandora-box', file),
-              linha: index + 1,
-            });
-          }
-        });
-      }
-    }
-
-    const paginatedSnippets = allSnippets.slice(Number(offset), Number(offset) + Number(limit));
-
-    console.log(`[${traceId}] 🔍 Busca por "${tag}": ${allSnippets.length} resultados`);
-    res.status(200).json({
-      total_count: allSnippets.length,
-      snippets: paginatedSnippets,
-    });
+    console.log(`[${traceId}] 🔍 DB Search for "${tag}": ${total_count} results found`);
+    res.status(200).json({ total_count, snippets });
 
   } catch (e: any) {
     console.error(`[${traceId}] ❌ Search error:`, e.message);
-    res.status(500).json({ error: 'Falha na busca', traceId });
+    res.status(500).json({ error: 'Falha na busca no banco de dados', traceId });
   }
 });
 
-// Para desenvolvimento local
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`🚀 Syndicate Vault API rodando na porta ${PORT}`);
-    console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
-  });
-}
+// --- Rota Padrão e Exportação ---
+app.use((req, res) => {
+  res.status(404).json({ error: 'Endpoint não encontrado.' });
+});
 
 export default app;

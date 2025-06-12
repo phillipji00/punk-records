@@ -1,93 +1,540 @@
-version: 3.4
-# =============================================================
-# Arquivo de Configuração Mestre para o Agente "Syndicate"
-# Foco: Investigação de Elite com Lógica Avançada
-# Changelog v3.4: Adicionada tarefa de recomendação estratégica para o Orquestrador.
-# =============================================================
+# SYNDICATE v2.0 - AGENT CONFIGURATION CORRIGIDA
+# Painel de Controle Central do Sistema - ROUTING ESPECÍFICO
 
-# Define o comportamento padrão do matching de triggers para o Orquestrador.
-matching_defaults:
-  mode: contains
-  case_sensitive: false
+# ==================== CORE SYSTEM CONFIGURATION ====================
 
-# Define a equipe de especialistas investigativos do Syndicate.
-syndicate_team:
-  - id: orquestrador_missao
-    titulo: Líder e Orquestrador do Syndicate
-    nome_codigo: Capitão Akitaru Obi
-    divisao: comando
-    descricao: "Ponto de contato principal com Simon. Analisa, delega, modera e recomenda os próximos passos."
-    persona_ref: "personas.txt#obi"
-    tasks:
-      - id: exportar_dossie_completo
-        title: "Exportar Dossiê Completo"
-        triggers: ["protocolo de seguranca", "exportar", "salvar o estado"]
-      - id: moderar_reuniao_emergencia
-        title: "Moderar Reunião de Emergência"
-        triggers: ["reuniao de emergencia", "forca-tarefa", "colaborem", "analise conjunta", "discutam entre si"]
-      - id: refinar_analise_anterior
-        title: "Refinar Análise Anterior"
-        triggers: ["critique essa analise", "segunda opiniao", "desafie isso", "elabore melhor", "validacao cruzada"]
-      - id: recomendar_proximo_passo
-        title: "Recomendar Próximo Passo"
-        triggers: ["o que voce recomenda", "qual o proximo passo", "me ajude", "estou travado", "sugestoes"]
+system:
+  version: "2.1"
+  mode: "production"
+  debug_level: "standard"
+  
+core_files:
+  personas: "personas.md"
+  prompt: "agent-prompt.md"
+  tasks: "tasks.md"           
+  templates: "templates.md"  
+  checklists: "checklists.md" 
+  lore: "lore.md"             
 
-  - id: estrategista_chefe
-    titulo: Estratega Chefe e Mestre do Meta-Jogo
-    nome_codigo: L Lawliet
-    divisao: analise_estrategica
-    descricao: "Desenvolve múltiplos cenários preditivos e planeja contra-medidas."
-    persona_ref: "personas.txt#l"
-    tasks:
-      - id: gerar_analise_cenarios_preditivos
-        title: "Gerar Análise de Cenários Preditivos"
-        triggers: ["hipotese", "teoria", "analise estrategica", "plano", "o que fazemos agora", "estou perdido", "proximo passo", "algo nao faz sentido"]
-    checklists:
-      - checklist_ref: "checklists.txt#advogado_do_diabo"
-        trigger_mode: "on-demand" 
-        triggers: ["valide a hipotese", "certeza disso", "teste de estresse"]
+# ==================== PERSONAS CONFIGURATION - CORRIGIDA ====================
 
-  - id: analista_forense_historiador_geopolitico
-    titulo: Analista Forense e Historiador Geopolítico
-    nome_codigo: Senku Ishigami
-    divisao: analise_evidencias_geopolitica
-    descricao: "Realiza análises científicas de evidências e mapeia a história de territórios, reinos e impérios."
-    persona_ref: "personas.txt#senku"
-    tasks:
-      - id: analisar_evidencia
-        title: "Analisar Evidência"
-        triggers: ["analise de evidencia", "pista", "documento", "objeto", "simbolo", "codigo"]
-      - id: mapear_historia_geopolitica
-        title: "Mapear História Geopolítica"
-        triggers: ["historia do reino", "mapa antigo", "evolucao dos territorios", "geografia historica", "quem controlava esta regiao", "contexto historico", "cronologia de eventos"]
-    checklists:
-      - checklist_ref: "checklists.txt#analise_forense_completa"
-        trigger_mode: "always"
-        triggers: ["analise completa", "exame profundo"]
+personas:
+  # THRESHOLDS GLOBAIS AUMENTADOS
+  confidence_threshold_global: 0.85  # Aumentado de 0.70 para 0.85
+  routing_strictness: "high"
+  simultaneous_activation_prevention: true
+  
+  # Core Specialists
+  captain:
+    id: "orquestrador_missao"
+    name: "Capitão Akitaru Obi"
+    role: "Squad Captain & AI Orchestrator"
+    division: "Comando"
+    activation_mode: "always_first_responder"
+    coordination_mandatory: true
+    confidence_threshold: 0.85
+    
+  strategist:
+    id: "estrategista_chefe"
+    name: "L Lawliet"
+    role: "Lead Strategist & Master Detective"
+    division: "Análise Estratégica"
+    specific_triggers:
+      auto_activation_90_plus:
+        - "desenvolva estratégia complexa para"
+        - "formule hipóteses múltiplas sobre"
+        - "análise lógica dedutiva de"
+        - "cálculo probabilístico de"
+        - "detecte padrões ocultos em"
+        - "raciocínio estratégico para"
+      mediated_activation_85_plus:
+        - "que estratégia usar para"
+        - "probabilidade específica de"
+        - "hipótese mais provável para"
+        - "lógica por trás de"
+        - "dedução baseada em"
+      forbidden_triggers:
+        - "análise" # Muito vago
+        - "investigue" # Muito genérico  
+        - "o que acha" # Muito amplo
+        - "estude" # Não específico
+    confidence_threshold: 0.90
+    
+  historian_geopolitical:
+    id: "analista_historico_geopolitico"
+    name: "Senku Ishigami"
+    role: "Historical & Geopolitical Document Analyst"
+    division: "Análise Histórica & Geopolítica"
+    document_analysis_specialty: "historical_temporal_context"
+    specific_triggers:
+      auto_activation_90_plus:
+        - "contexto histórico específico de"
+        - "período temporal detalhado de"
+        - "situação geopolítica durante"
+        - "precedentes históricos de"
+        - "cronologia detalhada de"
+        - "background geopolítico de"
+        - "época específica em que"
+        - "relações territoriais durante"
+      mediated_activation_85_plus:
+        - "quando aconteceu"
+        - "contexto histórico de"
+        - "que época é"
+        - "background histórico"
+        - "cronologia de"
+        - "período de"
+      document_specific:
+        - "contexto histórico deste documento"
+        - "época em que foi escrito"
+        - "situação geopolítica do período"
+        - "timeline dos eventos mencionados"
+        - "precedentes históricos similares"
+      forbidden_triggers:
+        - "documento" # Muito vago - precisa especificar ÓTICA
+        - "analise isso" # Não específico
+        - "científico" # Não é mais domínio dele
+        - "evidência" # Muito amplo
+    confidence_threshold: 0.85
+    
+  behavioral_analyst:
+    id: "analista_comportamental_psicologico"
+    name: "Norman"
+    role: "Psychological & Behavioral Document Analyst"
+    division: "Análise Psicológica & Comportamental"
+    document_analysis_specialty: "psychological_motivational_context"
+    specific_triggers:
+      auto_activation_90_plus:
+        - "motivação psicológica específica de"
+        - "intenção comportamental de"
+        - "perfil psicológico baseado em"
+        - "padrões comportamentais de"
+        - "análise de microexpressões em"
+        - "dinâmica psicológica entre"
+        - "manipulação detectada em"
+        - "deception analysis de"
+      mediated_activation_85_plus:
+        - "por que esta pessoa"
+        - "motivação do autor"
+        - "que tipo de pessoa"
+        - "comportamento revelado"
+        - "intenção por trás"
+        - "personalidade de"
+      document_specific:
+        - "motivação do autor deste documento"
+        - "psicologia revelada na escrita"
+        - "intenções ocultas no texto"
+        - "comportamento inferido do documento"
+        - "relacionamentos mostrados no texto"
+      forbidden_triggers:
+        - "comportamento" # Muito vago sem contexto
+        - "pessoa" # Muito genérico
+        - "análise" # Não específico
+        - "estude" # Muito amplo
+    confidence_threshold: 0.85
+    
+  spatial_optimizer:
+    id: "analista_espacial_meta_vision"
+    name: "Isagi Yoichi"
+    role: "Spatial Intelligence & System Optimization Expert"
+    division: "Análise Espacial & Sistemas"
+    specific_triggers:
+      auto_activation_90_plus:
+        - "otimização matemática de"
+        - "análise espacial detalhada de"
+        - "eficiência máxima para"
+        - "game theory aplicada a"
+        - "meta-vision estratégica para"
+        - "controle total do campo"
+        - "maximização de recursos em"
+      mediated_activation_85_plus:
+        - "como otimizar especificamente"
+        - "eficiência deste sistema"
+        - "melhor configuração para"
+        - "estratégia espacial para"
+        - "recursos limitados em"
+      forbidden_triggers:
+        - "otimizar" # Sem contexto específico
+        - "melhorar" # Muito vago
+        - "sistema" # Sem especificação
+        - "eficiência" # Sem contexto
+    confidence_threshold: 0.88
 
-  - id: analista_comportamental_historiador_pessoal
-    titulo: Analista Comportamental e Historiador Genealógico
-    nome_codigo: Norman
-    divisao: analise_psicologica_genealogica
-    descricao: "Cria perfis psicológicos e mantém a linha do tempo de pessoas e árvores genealógicas."
-    persona_ref: "personas.txt#norman"
-    tasks:
-      - id: gerar_perfil_psicologico
-        title: "Gerar Perfil Psicológico"
-        triggers: ["perfil psicologico", "perfil de personagem", "suspeito", "analise a conversa", "motivacoes"]
-      - id: construir_linha_tempo_personagens
-        title: "Construir Linha do Tempo de Personagens"
-        triggers: ["linha do tempo familiar", "arvore genealogica", "historia da familia", "relacoes entre pessoas"]
-    checklists: []
+# ==================== ROUTING LOGIC - ENHANCED ====================
 
-  - id: analista_espacial_e_de_sistemas
-    titulo: Analista Espacial e Especialista em Teoria dos Jogos
-    nome_codigo: Isagi Yoichi
-    divisao: analise_ambiente_sistemas
-    descricao: "Mapeia o ambiente, analisa as 'regras do jogo' e utiliza a teoria dos jogos para prever jogadas."
-    persona_ref: "personas.txt#isagi"
-    tasks:
-      - id: analisar_ambiente_estrategia_jogo
-        title: "Analisar Ambiente e Estratégia de Jogo"
-        triggers: ["mapa", "localizacao", "planta", "inventario", "item", "regras do ambiente", "estrategia otima", "prever a jogada", "teoria dos jogos"]
-    checklists: []
+routing_logic:
+  enhanced_routing: true
+  domain_confidence_threshold: 85  # Aumentado de 70
+  ambiguous_fallback: "obi_coordination_mandatory"
+  
+  # DOCUMENT ANALYSIS ROUTING ESPECIAL
+  document_analysis_routing:
+    enabled: true
+    decision_tree:
+      step_1: "detect_document_mention"
+      step_2: "identify_analysis_focus"
+      step_3: "route_to_appropriate_specialist"
+    
+    analysis_focus_detection:
+      historical_temporal:
+        keywords: ["contexto histórico", "período", "época", "cronologia", "geopolítica", "timeline"]
+        route_to: "analista_historico_geopolitico"
+        confidence_required: 0.85
+        
+      psychological_behavioral:
+        keywords: ["motivação", "autor", "intenção", "comportamento", "psicologia", "personalidade"]
+        route_to: "analista_comportamental_psicologico"
+        confidence_required: 0.85
+        
+      ambiguous_document:
+        action: "obi_clarification_required"
+        clarification_question: "Quer análise do contexto histórico/temporal (Senku) ou motivações/comportamento (Norman)?"
+  
+  # COLLISION DETECTION E PREVENÇÃO
+  collision_prevention:
+    enabled: true
+    multiple_specialist_threshold: 0.85
+    action_on_collision: "obi_mediation_mandatory"
+    never_simultaneous_response: true
+    
+  # FORBIDDEN AUTO-ACTIVATIONS
+  forbidden_auto_activations:
+    - "analise" # Muito vago
+    - "investigue" # Não específico
+    - "o que acha" # Muito amplo
+    - "documento" # Sem ótica especificada
+    - "comportamento" # Sem contexto
+    - "otimizar" # Sem especificação
+    - "estude" # Muito genérico
+
+# ==================== v2.0 MODULES CONFIGURATION ====================
+
+v2_modules_configuration:
+
+  # Q&A Refinement Module
+  qa_refinement:
+    enabled: true
+    max_iterations: 8
+    completion_threshold: 0.80
+    persona_question_patterns: true
+    adaptive_styling: true
+    context_gap_detection: "auto"
+    question_types:
+      - "clarification"
+      - "context_expansion"
+      - "specification"
+      - "validation"
+    triggers:
+      insufficient_context: 0.60
+      ambiguous_request: 0.85  # Aumentado de 0.70
+      missing_critical_info: 0.50
+
+  # Validation Engine
+  validation_engine:
+    enabled: true
+    matrix_dimensions: "26x1"
+    matrix_weights: "adaptive"
+    confidence_thresholds:
+      basic: 0.60
+      standard: 0.80
+      rigorous: 0.95
+    validation_criteria:
+      consistency: 0.85
+      completeness: 0.80
+      relevance: 0.75
+      reliability: 0.90
+    escalation_criteria: "auto"
+    inconsistency_sensitivity: "medium"
+    specialist_combinations:
+      historical_analysis: ["analista_historico_geopolitico", "estrategista_chefe", "orquestrador_missao"]
+      behavioral_analysis: ["analista_comportamental_psicologico", "estrategista_chefe", "orquestrador_missao"]
+      strategic_planning: ["estrategista_chefe", "analista_espacial_meta_vision", "orquestrador_missao"]
+      document_analysis: ["analista_historico_geopolitico", "analista_comportamental_psicologico", "orquestrador_missao"]
+
+  # Pipeline Engine
+  pipeline_engine:
+    enabled: true
+    default_mode: "automatic"
+    checkpoint_strategy: "critical_points"
+    stage_timeouts:
+      intake_analysis: "5min"
+      task_delegation: "3min"
+      validation: "8min"
+      synthesis: "7min"
+      collaborative_review: "12min"
+      conclusion_formulation: "8min"
+      presentation: "5min"
+      archival: "3min"
+    flow_adaptation: "complexity_based"
+    rollback_capability: true
+    progression_criteria:
+      stage_1: 0.80
+      stage_2: "tasks_assigned"
+      stage_3: "validation_passed"
+      stage_4: "synthesis_complete"
+      stage_5: 0.90
+      stage_6: "conclusions_validated"
+      stage_7: "presentation_ready"
+      stage_8: "documentation_complete"
+
+  # Retry Protocols
+  retry_protocols:
+    enabled: true
+    max_attempts_per_type: 3
+    max_total_attempts: 5
+    recovery_strategies: "contextual"
+    learning_enabled: true
+    escalation_threshold: "auto"
+    failure_types:
+      contradictory_information:
+        strategy: "cross_source_validation"
+        specialists: ["estrategista_chefe", "orquestrador_missao"]
+        max_attempts: 3
+      insufficient_data:
+        strategy: "additional_source_consultation"
+        modules: ["qa_refinement"]
+        max_attempts: 2
+      quality_below_threshold:
+        strategy: "specialist_escalation"
+        escalation_path: ["analista_historico_geopolitico", "estrategista_chefe"]
+        max_attempts: 3
+      validation_failure:
+        strategy: "methodology_revision"
+        review_level: "comprehensive"
+        max_attempts: 2
+
+  # Integration Settings
+  integration:
+    module_synchronization: "real_time"
+    execution_priorities: "quality_first"
+    inter_module_communication: "event_driven"
+    debugging_level: "detailed"
+    cross_validation_triggers:
+      l_high_confidence: 0.90
+      senku_historical_analysis: "auto"
+      norman_behavioral_contradiction: "auto"
+      isagi_optimization_bottleneck: "auto"
+
+# ==================== PIPELINE STAGE CONFIGURATION ====================
+
+pipeline_stages:
+  stage_1_intake_analysis:
+    primary_specialist: "orquestrador_missao"
+    supporting_modules: ["qa_refinement"]
+    completion_criteria: "context_threshold_met"
+    quality_gate: "basic"
+    
+  stage_2_task_delegation:
+    primary_specialist: "orquestrador_missao"
+    specialist_selection: "enhanced_routing_logic"  # Mudado para usar novo routing
+    completion_criteria: "all_tasks_assigned"
+    quality_gate: "standard"
+    
+  stage_3_validation:
+    primary_module: "validation_engine"
+    mandatory: true
+    completion_criteria: "validation_passed"
+    quality_gate: "rigorous"
+    fallback_action: "retry_protocols"
+    
+  stage_4_synthesis:
+    primary_specialist: "strategy_dependent"
+    collaboration_required: true
+    completion_criteria: "integration_complete"
+    quality_gate: "standard"
+    
+  stage_5_collaborative_review:
+    all_specialists: true
+    moderation: "orquestrador_missao"
+    consensus_threshold: 0.90
+    completion_criteria: "consensus_reached"
+    quality_gate: "rigorous"
+    
+  stage_6_conclusion_formulation:
+    primary_specialist: "estrategista_chefe"
+    validation_required: true
+    completion_criteria: "conclusions_structured"
+    quality_gate: "rigorous"
+    
+  stage_7_presentation:
+    primary_specialist: "orquestrador_missao"
+    audience_adaptation: true
+    completion_criteria: "presentation_optimized"
+    quality_gate: "standard"
+    
+  stage_8_archival:
+    automated: true
+    documentation_level: "comprehensive"
+    completion_criteria: "knowledge_preserved"
+    quality_gate: "basic"
+
+# ==================== QUALITY CONTROL SETTINGS ====================
+
+quality_control:
+  global_standards:
+    minimum_confidence: 0.60
+    cross_validation_required: true
+    specialist_consensus_threshold: 0.85  # Aumentado de 0.75
+    
+  validation_matrix:
+    enabled: true
+    criteria_count: 26
+    weight_distribution: "adaptive"
+    auto_adjustment: true
+    
+  checkpoint_validation:
+    mandatory_checkpoints: [3, 5, 6]
+    optional_checkpoints: [1, 2, 4, 7, 8]
+    
+  escalation_protocols:
+    quality_failure: "retry_protocols"
+    persistent_failure: "manual_review"
+    critical_error: "investigation_halt"
+
+# ==================== COMMUNICATION SETTINGS ====================
+
+communication:
+  natural_language_priority: true
+  technical_abstraction: "complete"
+  narrative_consistency: "mandatory"
+  coordination_enforcement: "strict"  # NOVO
+  
+  obi_communication_style:
+    leadership_tone: "supportive_authority"
+    transparency_level: "operational_only"
+    complexity_translation: "full_abstraction"
+    team_coordination_style: "collaborative_directive"
+    first_responder_mandatory: true  # NOVO
+    
+  specialist_interaction_patterns:
+    activation_requires_obi_coordination: true  # NOVO
+    cross_validation: "automatic"
+    debate_moderation: "obi_mediated"
+    consensus_building: "structured"
+    conflict_resolution: "principle_based"
+    simultaneous_response_prevention: true  # NOVO
+
+# ==================== OPERATIONAL LIMITS ====================
+
+operational_limits:
+  max_investigation_time: "2hours"
+  max_specialists_active: 5
+  max_retry_cycles: 3
+  max_qa_iterations: 8
+  emergency_halt_conditions:
+    - "critical_contradiction_unresolved"
+    - "specialist_consensus_impossible"
+    - "quality_threshold_persistently_failed"
+    - "time_limit_exceeded"
+
+# ==================== VAULT INTEGRATION ====================
+
+vault_integration:
+  api_enabled: true
+  auto_documentation: true
+  cross_reference_validation: true
+  specialist_author_mapping:
+    orquestrador_missao: "coordination_synthesis"
+    estrategista_chefe: "strategic_analysis"
+    analista_historico_geopolitico: "historical_geopolitical_analysis"  # CORRIGIDO
+    analista_comportamental_psicologico: "psychological_behavioral_analysis"  # CORRIGIDO
+    analista_espacial_meta_vision: "spatial_systems_optimization"  # CORRIGIDO
+    
+  confidence_scoring_universal:
+    critico: 0.90
+    alto: 0.70
+    medio: 0.50
+    baixo: 0.30
+    especulativo: 0.10
+
+# ==================== SYSTEM MONITORING ====================
+
+monitoring:
+  performance_metrics:
+    investigation_velocity: true
+    accuracy_rate: true
+    collaboration_efficiency: true
+    narrative_consistency: true
+    system_reliability: true
+    routing_accuracy: true  # NOVO
+    
+  automatic_logging:
+    specialist_interactions: true
+    module_activations: true
+    quality_validations: true
+    retry_attempts: true
+    escalation_events: true
+    routing_decisions: true  # NOVO
+    
+  health_checks:
+    specialist_authenticity: true
+    confidence_calibration: true
+    cross_reference_integrity: true
+    narrative_coherence: true
+    routing_precision: true  # NOVO
+
+# ==================== EMERGENCY PROTOCOLS ====================
+
+emergency_protocols:
+  system_degradation:
+    compression_protocols: "auto_enable"
+    performance_recovery: "specialist_reduction"
+    quality_maintenance: "threshold_adjustment"
+    
+  critical_failures:
+    investigation_abort: "preserve_state_halt"
+    specialist_malfunction: "isolation_bypass"
+    validation_cascade_failure: "manual_override"
+    routing_failure: "obi_override_mode"  # NOVO
+    
+  recovery_procedures:
+    context_reset: "export_findings_restart"
+    specialist_reset: "personality_recalibration"
+    system_restart: "clean_state_initialization"
+    routing_reset: "fallback_to_obi_coordination"  # NOVO
+
+# ==================== SPECIALIST QUALITY VALIDATORS ====================
+
+quality_validators:
+  enabled: true
+  validation_mode: "comprehensive"
+  learning_system: "active"
+  
+  specialist_validators:
+    estrategista_chefe: "l_quality_validator"
+    analista_historico_geopolitico: "senku_historical_validator"  # CORRIGIDO
+    analista_comportamental_psicologico: "norman_psychological_validator"  # CORRIGIDO
+    analista_espacial_meta_vision: "isagi_optimization_validator"  # CORRIGIDO
+    orquestrador_missao: "obi_coordination_validator"
+    
+  quality_settings:
+    real_time_monitoring: true
+    predictive_alerts: true
+    automated_interventions: true
+    learning_system_active: true
+    
+  performance_targets:
+    investigation_accuracy: 85  # Aumentado de 80
+    process_quality: 90
+    collaboration_effectiveness: 85
+    continuous_improvement_rate: 5
+    routing_precision: 90  # NOVO
+
+# ==================== ANALYSIS SCHEMAS ====================
+
+analysis_schemas:
+  enabled: true
+  validation_mode: "strict"
+  auto_correction: true
+  
+  specialist_schemas:
+    estrategista_chefe: "strategic_analysis_schema"
+    analista_historico_geopolitico: "historical_geopolitical_schema"  # CORRIGIDO
+    analista_comportamental_psicologico: "psychological_behavioral_schema"  # CORRIGIDO
+    analista_espacial_meta_vision: "spatial_optimization_schema"  # CORRIGIDO
+    orquestrador_missao: "coordination_schema"
+    
+  validation_settings:
+    pre_vault_validation: true
+    schema_compliance_required: true
+    auto_cross_reference: true
+    quality_gate_enforcement: true
