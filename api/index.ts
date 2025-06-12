@@ -6,15 +6,14 @@ import Joi from 'joi';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 
-// 🚀 NOVA IMPORTAÇÃO: Ferramentas para interagir com o MongoDB
+// Ferramentas para interagir com o MongoDB
 import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
 
-// Verificação de segurança na inicialização
+// Verificação de segurança na inicialização para garantir que as variáveis existam em produção
 if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
   console.error('ERRO FATAL: JWT_SECRET não está configurado no ambiente de produção. Encerrando.');
   process.exit(1);
 }
-// 🚀 NOVA VERIFICAÇÃO: Garante que a URL do banco de dados exista em produção
 if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
   console.error('ERRO FATAL: DATABASE_URL não está configurada no ambiente de produção. Encerrando.');
   process.exit(1);
@@ -29,13 +28,12 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'tiny' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
 
 // --- Configuração da Conexão com o MongoDB ---
-// Valida se a DATABASE_URL foi fornecida
 if (!process.env.DATABASE_URL) {
   console.error("ERRO: A variável de ambiente DATABASE_URL é necessária.");
   if (process.env.NODE_ENV === 'production') process.exit(1);
 }
 
-// 🚀 NOVA LÓGICA: Cria uma instância do cliente MongoDB para ser reutilizada
+// Cria uma instância do cliente MongoDB para ser reutilizada
 const client = new MongoClient(process.env.DATABASE_URL!, {
   serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
 });
@@ -84,7 +82,7 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
-// 🚀 ROTA /ingest TOTALMENTE REFATORADA
+// Rota /ingest refatorada
 app.post('/api/ingest', verifyToken, async (req: Request, res: Response) => {
   const schema = Joi.object({
     tipo_registro: Joi.string().valid('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline', 'registro_misc', 'cross_validation_result').required(),
@@ -98,19 +96,15 @@ app.post('/api/ingest', verifyToken, async (req: Request, res: Response) => {
   const { tipo_registro, autor, dados } = req.body;
   const traceId = Math.random().toString(36).substring(2);
 
-  console.log(`[${traceId}] 🚀 Starting DB ingest:`, { tipo_registro, autor });
-
   try {
     const novoRegistro = {
       tipo_registro,
       autor,
-      dados, // Armazena o objeto de dados completo
+      dados,
       timestamp: new Date(),
     };
 
     const result = await vaultCollection.insertOne(novoRegistro);
-
-    console.log(`[${traceId}] ✅ Success! Inserted ID: ${result.insertedId}`);
     res.status(201).json({ status: "created", id_registro: result.insertedId.toHexString(), traceId });
     
   } catch (e: any) {
@@ -119,7 +113,7 @@ app.post('/api/ingest', verifyToken, async (req: Request, res: Response) => {
   }
 });
 
-// 🚀 ROTA /search TOTALMENTE REFATORADA
+// 🚀 ROTA /search FINALMENTE CORRIGIDA: Removido o .sort() e .project() incompatíveis com o plano M0
 app.get('/api/search', verifyToken, async (req: Request, res: Response) => {
   const traceId = Math.random().toString(36).substring(2);
   const { tag, tipo_registro, limit = 10, offset = 0 } = req.query;
@@ -135,14 +129,13 @@ app.get('/api/search', verifyToken, async (req: Request, res: Response) => {
     }
     
     const total_count = await vaultCollection.countDocuments(query);
+    
+    // VERSÃO CORRIGIDA: Removemos .project() e .sort() que usavam 'textScore'
     const snippets = await vaultCollection.find(query)
-      .project({ score: { $meta: "textScore" } })
-      .sort({ score: { $meta: "textScore" } })
       .skip(Number(offset))
       .limit(Number(limit))
       .toArray();
 
-    console.log(`[${traceId}] 🔍 DB Search for "${tag}": ${total_count} results found`);
     res.status(200).json({ total_count, snippets });
 
   } catch (e: any) {
