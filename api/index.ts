@@ -154,8 +154,6 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint não encontrado.' });
 });
 
-export default app;
-
 import serverless from 'serverless-http';
 
 export default serverless(app);
