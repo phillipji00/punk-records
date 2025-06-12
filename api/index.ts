@@ -5,6 +5,8 @@ import morgan from 'morgan';
 import Joi from 'joi';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
+import rateLimit from 'express-rate-limit';
+import serverless from 'serverless-http';
 
 import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
 
@@ -169,6 +171,6 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint não encontrado.' });
 });
 
-import serverless from 'serverless-http';
+
 
 export default serverless(app);
