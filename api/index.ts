@@ -13,6 +13,8 @@ dotenv.config();
 
 const app = express();
 
+app.set('trust proxy', 1); // ✅ ESSA LINHA RESOLVE O ERRO DE IP
+
 app.use(express.json({ limit: '10mb' }));
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(helmet());
