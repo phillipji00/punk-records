@@ -1,7 +1,3 @@
-from pathlib import Path
-
-# Simulando criação do arquivo index.ts adaptado para PostgreSQL via Neon
-index_ts_code = """\
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -119,11 +115,4 @@ app.get('/api/search', verifyToken, async (req: Request, res: Response) => {
   }
 });
 
-export default serverless(app);
-"""
-
-# Salvar o conteúdo como arquivo
-output_path = Path("/mnt/data/index.ts")
-output_path.write_text(index_ts_code)
-
-output_path.name  # to show the downloadable filename to the user
+export default app;
