@@ -26,11 +26,11 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    return (
+    const ip =
       req.headers['x-forwarded-for'] ||
       req.socket?.remoteAddress ||
-      'unknown-ip'
-    );
+      'unknown-ip';
+    return Array.isArray(ip) ? ip[0] : ip;
   },
 });
 app.use(limiter);
@@ -83,7 +83,7 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
 app.get('/api/health', async (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'operational',
-    db_connection_status: client.topology?.s.state || 'connecting',
+    db_connection_status: client?.db()?.databaseName ? 'connected' : 'connecting',
     timestamp: new Date().toISOString()
   });
 });
