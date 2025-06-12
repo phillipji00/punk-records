@@ -19,6 +19,21 @@ if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
 }
 
 const app = express();
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+app.use(cors({ origin: process.env.CORS_ORIGIN }));
+app.use(helmet());
+app.use(morgan('combined'));
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(limiter);
 
 // --- Middlewares ---
 app.use(helmet());
