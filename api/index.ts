@@ -1,32 +1,22 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
+import dotenv from 'dotenv';
+import serverless from 'serverless-http';
+import { MongoClient } from 'mongodb';
 import Joi from 'joi';
 import jwt from 'jsonwebtoken';
-import 'dotenv/config';
-import rateLimit from 'express-rate-limit';
-import serverless from 'serverless-http';
 
-import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
-
-// Verificações de segurança na inicialização
-if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  console.error('ERRO FATAL: JWT_SECRET não está configurado no ambiente de produção. Encerrando.');
-  process.exit(1);
-}
-if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
-  console.error('ERRO FATAL: DATABASE_URL não está configurada no ambiente de produção. Encerrando.');
-  process.exit(1);
-}
+dotenv.config();
 
 const app = express();
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-app.use(cors({ origin: process.env.CORS_ORIGIN }));
+app.use(express.json({ limit: '10mb' }));
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(helmet());
-app.use(morgan('combined'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'tiny' : 'dev'));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -34,37 +24,32 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-
 app.use(limiter);
 
-// --- Middlewares ---
-app.use(helmet());
-app.use(cors());
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'tiny' : 'dev'));
-app.use(express.json({ limit: '10mb' }));
-
-// --- Configuração da Conexão com o MongoDB ---
+// --- MongoDB Connection ---
 if (!process.env.DATABASE_URL) {
   console.error("ERRO: A variável de ambiente DATABASE_URL é necessária.");
   if (process.env.NODE_ENV === 'production') process.exit(1);
 }
 
-// 🚀 CORREÇÃO FINAL: Removemos as opções estritas da API para permitir o uso do $search
 const client = new MongoClient(process.env.DATABASE_URL!);
+let db: any;
+let vaultCollection: any;
 
-// Conecta ao banco de dados uma vez na inicialização
-client.connect().then(() => {
+async function initMongo() {
+  if (!db) {
+    await client.connect();
+    db = client.db("syndicateVault");
+    vaultCollection = db.collection("registros");
     console.log("✅ Conectado com sucesso ao MongoDB Atlas.");
-}).catch(err => {
-    console.error("❌ Falha ao conectar com o MongoDB Atlas.", err);
-    process.exit(1);
+  }
+}
+initMongo().catch((err) => {
+  console.error("❌ Falha ao conectar com o MongoDB Atlas.", err);
+  process.exit(1);
 });
 
-const db = client.db("syndicateVault");
-const vaultCollection = db.collection("registros");
-
-
-// --- Middleware de Autenticação ---
+// --- JWT Auth Middleware ---
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
@@ -86,10 +71,9 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-// --- Rotas da API ---
-
-app.get('/api/health', (req: Request, res: Response) => {
-  res.status(200).json({ 
+// --- API Routes ---
+app.get('/api/health', async (_req: Request, res: Response) => {
+  res.status(200).json({
     status: 'operational',
     db_connection_status: client.topology?.s.state || 'connecting',
     timestamp: new Date().toISOString()
@@ -102,7 +86,7 @@ app.post('/api/ingest', verifyToken, async (req: Request, res: Response) => {
     autor: Joi.string().required(),
     dados: Joi.object().required().unknown(true)
   });
-  
+
   const { error } = schema.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
@@ -116,10 +100,8 @@ app.post('/api/ingest', verifyToken, async (req: Request, res: Response) => {
       dados,
       timestamp: new Date(),
     };
-
     const result = await vaultCollection.insertOne(novoRegistro);
     res.status(201).json({ status: "created", id_registro: result.insertedId.toHexString(), traceId });
-    
   } catch (e: any) {
     console.error(`[${traceId}] ❌ DB Error:`, e.message);
     res.status(500).json({ error: 'Falha ao salvar no banco de dados', traceId });
@@ -133,7 +115,7 @@ app.get('/api/search', verifyToken, async (req: Request, res: Response) => {
   if (!tag) {
     return res.status(400).json({ error: 'Parâmetro "tag" é obrigatório' });
   }
-  
+
   try {
     const searchPipeline = [
       {
@@ -141,12 +123,8 @@ app.get('/api/search', verifyToken, async (req: Request, res: Response) => {
           index: 'default',
           text: {
             query: tag as string,
-            path: {
-              'wildcard': '*'
-            },
-            fuzzy: {
-                maxEdits: 1
-            }
+            path: { wildcard: '*' },
+            fuzzy: { maxEdits: 1 }
           }
         }
       },
@@ -155,22 +133,12 @@ app.get('/api/search', verifyToken, async (req: Request, res: Response) => {
     ];
 
     const snippets = await vaultCollection.aggregate(searchPipeline).toArray();
-    const total_count = snippets.length; 
-
-    console.log(`[${traceId}] 🔍 Atlas Search for "${tag}": ${snippets.length} results found`);
-    res.status(200).json({ total_count, snippets });
-
+    res.status(200).json({ total_count: snippets.length, snippets });
   } catch (e: any) {
     console.error(`[${traceId}] ❌ Search error:`, e.message);
     res.status(500).json({ error: 'Falha na busca no banco de dados', traceId });
   }
 });
 
-// --- Rota Padrão e Exportação ---
-app.use((req, res) => {
-  res.status(404).json({ error: 'Endpoint não encontrado.' });
-});
-
-
-
+// 👇 Exportação correta para Vercel
 export default serverless(app);
