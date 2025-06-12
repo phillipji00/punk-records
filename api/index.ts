@@ -6,10 +6,9 @@ import Joi from 'joi';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 
-// Ferramentas para interagir com o MongoDB
 import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
 
-// Verificação de segurança na inicialização para garantir que as variáveis existam em produção
+// Verificações de segurança na inicialização
 if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
   console.error('ERRO FATAL: JWT_SECRET não está configurado no ambiente de produção. Encerrando.');
   process.exit(1);
@@ -33,10 +32,10 @@ if (!process.env.DATABASE_URL) {
   if (process.env.NODE_ENV === 'production') process.exit(1);
 }
 
-const client = new MongoClient(process.env.DATABASE_URL!, {
-  serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
-});
+// 🚀 CORREÇÃO FINAL: Removemos as opções estritas da API para permitir o uso do $search
+const client = new MongoClient(process.env.DATABASE_URL!);
 
+// Conecta ao banco de dados uma vez na inicialização
 client.connect().then(() => {
     console.log("✅ Conectado com sucesso ao MongoDB Atlas.");
 }).catch(err => {
@@ -48,7 +47,7 @@ const db = client.db("syndicateVault");
 const vaultCollection = db.collection("registros");
 
 
-// --- Middleware de Autenticação (Corrigido) ---
+// --- Middleware de Autenticação ---
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
@@ -110,7 +109,6 @@ app.post('/api/ingest', verifyToken, async (req: Request, res: Response) => {
   }
 });
 
-// 🚀 ROTA /search ATUALIZADA PARA USAR O ATLAS SEARCH INDEX
 app.get('/api/search', verifyToken, async (req: Request, res: Response) => {
   const traceId = Math.random().toString(36).substring(2);
   const { tag, limit = 10, offset = 0 } = req.query;
@@ -120,31 +118,26 @@ app.get('/api/search', verifyToken, async (req: Request, res: Response) => {
   }
   
   try {
-    // Pipeline de agregação para o Atlas Search
     const searchPipeline = [
       {
         $search: {
-          index: 'default', // <-- Use o nome do índice que você criou (o padrão é 'default')
+          index: 'default',
           text: {
             query: tag as string,
             path: {
-              'wildcard': '*' // Busca em todos os campos de texto do documento
+              'wildcard': '*'
             },
             fuzzy: {
-                maxEdits: 1 // Permite encontrar palavras com pequenas variações/erros de digitação
+                maxEdits: 1
             }
           }
         }
       },
-      // Os estágios de skip e limit vêm depois do $search
       { $skip: Number(offset) },
       { $limit: Number(limit) }
     ];
 
     const snippets = await vaultCollection.aggregate(searchPipeline).toArray();
-    
-    // Contar o total com Atlas Search é mais complexo, por isso simplificamos para este teste.
-    // Em uma aplicação real, faríamos uma segunda chamada com $count.
     const total_count = snippets.length; 
 
     console.log(`[${traceId}] 🔍 Atlas Search for "${tag}": ${snippets.length} results found`);
