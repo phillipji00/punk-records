@@ -119,7 +119,7 @@ app.get('/api/search', verifyToken, async (req: Request, res: Response) => {
   }
 });
 
-export default app;
+export default serverless(app);
 """
 
 # Salvar o conteúdo como arquivo
