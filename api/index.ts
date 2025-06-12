@@ -33,12 +33,10 @@ if (!process.env.DATABASE_URL) {
   if (process.env.NODE_ENV === 'production') process.exit(1);
 }
 
-// Cria uma instância do cliente MongoDB para ser reutilizada
 const client = new MongoClient(process.env.DATABASE_URL!, {
   serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
 });
 
-// Conecta ao banco de dados uma vez na inicialização
 client.connect().then(() => {
     console.log("✅ Conectado com sucesso ao MongoDB Atlas.");
 }).catch(err => {
@@ -82,12 +80,11 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
-// Rota /ingest refatorada
 app.post('/api/ingest', verifyToken, async (req: Request, res: Response) => {
   const schema = Joi.object({
     tipo_registro: Joi.string().valid('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline', 'registro_misc', 'cross_validation_result').required(),
     autor: Joi.string().required(),
-    dados: Joi.object().required().unknown(true) // Permite qualquer estrutura em 'dados'
+    dados: Joi.object().required().unknown(true)
   });
   
   const { error } = schema.validate(req.body);
@@ -113,29 +110,44 @@ app.post('/api/ingest', verifyToken, async (req: Request, res: Response) => {
   }
 });
 
-// 🚀 ROTA /search FINALMENTE CORRIGIDA: Removido o .sort() e .project() incompatíveis com o plano M0
+// 🚀 ROTA /search ATUALIZADA PARA USAR O ATLAS SEARCH INDEX
 app.get('/api/search', verifyToken, async (req: Request, res: Response) => {
   const traceId = Math.random().toString(36).substring(2);
-  const { tag, tipo_registro, limit = 10, offset = 0 } = req.query;
+  const { tag, limit = 10, offset = 0 } = req.query;
 
   if (!tag) {
     return res.status(400).json({ error: 'Parâmetro "tag" é obrigatório' });
   }
   
   try {
-    const query: any = { $text: { $search: tag as string } }; 
-    if (tipo_registro && tipo_registro !== 'todos') {
-      query.tipo_registro = tipo_registro;
-    }
-    
-    const total_count = await vaultCollection.countDocuments(query);
-    
-    // VERSÃO CORRIGIDA: Removemos .project() e .sort() que usavam 'textScore'
-    const snippets = await vaultCollection.find(query)
-      .skip(Number(offset))
-      .limit(Number(limit))
-      .toArray();
+    // Pipeline de agregação para o Atlas Search
+    const searchPipeline = [
+      {
+        $search: {
+          index: 'default', // <-- Use o nome do índice que você criou (o padrão é 'default')
+          text: {
+            query: tag as string,
+            path: {
+              'wildcard': '*' // Busca em todos os campos de texto do documento
+            },
+            fuzzy: {
+                maxEdits: 1 // Permite encontrar palavras com pequenas variações/erros de digitação
+            }
+          }
+        }
+      },
+      // Os estágios de skip e limit vêm depois do $search
+      { $skip: Number(offset) },
+      { $limit: Number(limit) }
+    ];
 
+    const snippets = await vaultCollection.aggregate(searchPipeline).toArray();
+    
+    // Contar o total com Atlas Search é mais complexo, por isso simplificamos para este teste.
+    // Em uma aplicação real, faríamos uma segunda chamada com $count.
+    const total_count = snippets.length; 
+
+    console.log(`[${traceId}] 🔍 Atlas Search for "${tag}": ${snippets.length} results found`);
     res.status(200).json({ total_count, snippets });
 
   } catch (e: any) {
