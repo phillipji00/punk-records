@@ -14,8 +14,8 @@
     "test": "jest",
     "prepare": "husky install"
   },
-"engines": {
-  "node": "18.x"
+  "engines": {
+    "node": "18.x"
   },
   "keywords": [
     "syndicate",
@@ -37,7 +37,8 @@
     "joi": "^17.13.1",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.17.0",
-    "morgan": "^1.9.0"
+    "morgan": "^1.9.0",
+    "serverless-http": "^3.2.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
