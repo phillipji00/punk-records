@@ -13,7 +13,7 @@ dotenv.config();
 
 const app = express();
 
-app.set('trust proxy', 1); // ✅ ESSA LINHA RESOLVE O ERRO DE IP
+app.set('trust proxy', 1);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
@@ -25,9 +25,15 @@ const limiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    return (
+      req.headers['x-forwarded-for'] ||
+      req.socket?.remoteAddress ||
+      'unknown-ip'
+    );
+  },
 });
 app.use(limiter);
-
 // --- MongoDB Connection ---
 if (!process.env.DATABASE_URL) {
   console.error("ERRO: A variável de ambiente DATABASE_URL é necessária.");
