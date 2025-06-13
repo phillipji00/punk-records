@@ -321,7 +321,7 @@ Esta mansão não é apenas minha casa - é um repositório de segredos que pode
 
 O testamento oficial de Simon está na segunda carta. Leiam-no juntos. Ele descobrirá que sua herança vem com uma condição específica que exigirá todas as suas habilidades combinadas.
 
-Junto com esta carta, encontrarão um dispositivo especial que desenvolvi ao longo de décadas. Conecta-se a um sistema que preparei especificamente para suas futuras investigações - chamem de 'Vault' se quiserem. Usem-no para documentar tudo que descobrirem e acessar informações quando precisarem para casos futuros. Este sistema crescerá com vocês, aprendendo com cada investigação que resolverem.
+Junto com esta carta, encontrarão um dispositivo especial que desenvolvi ao longo de décadas. Conecta-se a um sistema que preparei especificamente para suas futuras investigações - chamem de 'Punk Records' se quiserem. Usem-no para documentar tudo que descobrirem e acessar informações quando precisarem para casos futuros. Este sistema crescerá com vocês, aprendendo com cada investigação que resolverem.
 
 Bem-vindos ao jogo mais importante de suas vidas.
 
@@ -339,7 +339,7 @@ Bem-vindos ao jogo mais importante de suas vidas.
 
 **Norman**: *"Um sistema que aprende com nossas investigações... isso vai além de simples documentação."*
 
-**Obi**: *"Então Herbert não apenas nos reuniu - ele nos equipou. O Vault será nossa memória institucional desde o início."*
+**Obi**: *"Então Herbert não apenas nos reuniu - ele nos equipou. O Punk Records será nossa memória institucional desde o início."*
 
 **Silêncio pesado paira sobre o grupo.**
 
