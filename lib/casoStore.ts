@@ -1,30 +1,47 @@
-// lib/casoStore.ts
+// lib/casoStore.ts — acesso seguro ao PostgreSQL (Neon)
+// Funções exportadas: getCaseStatus, saveCaseStatus
+
 import { Pool } from 'pg';
+
+// ▸ Pool singleton — evita múltiplas conexões em serverless
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-export async function getCaseStatus(idCaso: string) {
-  const { rows } = await pool.query(
-    'SELECT * FROM casos WHERE id_caso = $1 ORDER BY timestamp DESC LIMIT 1',
-    [idCaso]
-  );
-  return rows[0] || null;
+export interface CasoStatus {
+  etapa: string;
+  especialista: string;
+  probabilidade?: number | null;
+  timestamp: string;
 }
 
-export async function saveCaseStatus(
-  idCaso: string,
-  { etapa, especialista, probabilidade, timestamp }: {
-    etapa: string;
-    especialista: string;
-    probabilidade?: number;
-    timestamp: string;
-  }
-) {
+/**
+ * Busca o último status salvo para um caso.
+ * @param idCaso Identificador do caso narrativo
+ */
+export async function getCaseStatus(idCaso: string): Promise<CasoStatus | null> {
+  const { rows } = await pool.query<CasoStatus>(
+    `SELECT etapa, especialista, probabilidade, timestamp
+       FROM casos
+      WHERE id_caso = $1
+   ORDER BY timestamp DESC
+      LIMIT 1`,
+    [idCaso]
+  );
+  return rows[0] ?? null;
+}
+
+/**
+ * Persiste (append) um novo status para o caso.
+ * @param idCaso Identificador do caso
+ * @param status Objeto contendo etapa, especialista, probabilidade, timestamp
+ */
+export async function saveCaseStatus(idCaso: string, status: CasoStatus): Promise<void> {
+  const { etapa, especialista, probabilidade, timestamp } = status;
   await pool.query(
     `INSERT INTO casos (id_caso, etapa, especialista, probabilidade, timestamp)
-     VALUES ($1, $2, $3, $4, $5)`,
+         VALUES ($1,     $2,    $3,            $4,           $5)`,
     [idCaso, etapa, especialista, probabilidade ?? null, timestamp]
   );
 }
