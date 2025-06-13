@@ -1,4 +1,3 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -8,8 +7,7 @@ import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import Joi from 'joi';
 import { Pool } from 'pg';
-import serverless from 'serverless-http';
-import { orchestrate } from '../lib/runtimeOrchestrator';   // ajuste o caminho se necessário
+import { orchestrate } from '../lib/runtimeOrchestrator'; // NOVO IMPORT ✔️
 
 dotenv.config();
 
