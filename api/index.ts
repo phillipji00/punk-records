@@ -13,7 +13,7 @@ dotenv.config();
 
 const app = express();
 
-app.set('trust proxy', true); // Corrige erro do express-rate-limit no Vercel
+app.set('trust proxy', 1); // Confia apenas no primeiro proxy (Vercel) e evita validações do express‑rate‑limit
 
 app.use(helmet());
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
