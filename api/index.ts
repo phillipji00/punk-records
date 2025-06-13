@@ -70,43 +70,42 @@ app.get('/api/health', async (_req: Request, res: Response) => {
   }
 });
 
-app.post(
-  '/api/ingest',
-  verifyToken,                              // ⬅️ middleware de JWT continua
-  async (req: Request, res: Response) => {
-    // ----- 1) Validação Joi (mantém o que já tinha) -----
-    const schema = Joi.object({
-      tipo_registro: Joi.string()
-        .valid(
-          'hipotese',
-          'evidencia',
-          'perfil_personagem',
-          'entrada_timeline',
-          'registro_misc',
-          'cross_validation_result'
-        )
-        .required(),
-      autor: Joi.string().required(),
-      dados: Joi.object().required().unknown(true),
-    });
+app.post('/api/ingest', verifyToken, async (req: Request, res: Response) => {
+  // 1) Validação Joi
+  const schema = Joi.object({
+    tipo_registro: Joi.string()
+      .valid(
+        'hipotese',
+        'evidencia',
+        'perfil_personagem',
+        'entrada_timeline',
+        'registro_misc',
+        'cross_validation_result'
+      )
+      .required(),
+    autor: Joi.string().required(),
+    dados: Joi.object().required().unknown(true),
+  });
 
-    try {
-      // Se falhar, cai no catch e devolve 400
-      await schema.validateAsync(req.body, { abortEarly: false });
+  try {
+    await schema.validateAsync(req.body, { abortEarly: false });
 
-      // ----- 2) Dispara o pipeline SEM esperar terminar -----
-      orchestrate(req.body).catch(console.error); // 🔵 não usar 'await' aqui
+    // 2) Dispara o pipeline em background
+    orchestrate(req.body).catch(console.error);   // NÃO usar await
 
-      // ----- 3) Responde rápido (menos de 1s) -----
-      return res.status(202).json({ status: 'processing' });
-    } catch (err: any) {
-      // Se for erro de validação Joi, detalhe na resposta
-      if (err.isJoi) {
-        return res.status(400).json({
-          error: 'Payload inválido',
-          detalhes: err.details,
-        });
-      }
+    // 3) Responde rápido
+    return res.status(202).json({ status: 'processing' });
+  } catch (err: any) {
+    if (err.isJoi) {
+      return res.status(400).json({
+        error: 'Payload inválido',
+        detalhes: err.details
+      });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+});
+
 
       // Qualquer outro erro
       return res.status(400).json({ error: err.message });
