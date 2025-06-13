@@ -114,4 +114,11 @@ app.get('/api/search', verifyToken, async (req: Request, res: Response) => {
 });
 
 // ⬇️ ESSA LINHA É A ÚNICA ADIÇÃO NECESSÁRIA:
+app.use((req, res, next) => {
+  if (req.url?.startsWith('/api')) {
+    req.url = req.url.replace(/^\/api/, '') || '/';
+  }
+  next();
+});
 export default serverless(app);
+
