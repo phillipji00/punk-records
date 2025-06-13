@@ -1,0 +1,14 @@
+[
+  {
+    "id_caso": "sinclair_heranca",
+    "etapa": "validação",
+    "especialistas_ativos": [
+      "L"
+    ],
+    "contexto": {
+      "descricao": "A motivação principal do personagem parece ser proteger um segredo de família.",
+      "probabilidade": 91
+    },
+    "atualizado_em": "2025-06-13T00:22:26.260Z"
+  }
+]
