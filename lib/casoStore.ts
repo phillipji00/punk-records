@@ -2,7 +2,6 @@
 
 import { Pool } from 'pg';
 
-// ▸ Pool singleton — evita múltiplas conexões em serverless
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
@@ -15,10 +14,6 @@ export interface CasoStatus {
   timestamp: string;
 }
 
-/**
- * Busca o último status salvo para um caso.
- * @param idCaso Identificador do caso narrativo
- */
 export async function getCaseStatus(idCaso: string): Promise<CasoStatus | null> {
   const { rows } = await pool.query<CasoStatus>(
     `SELECT etapa, especialista, probabilidade, timestamp
@@ -31,16 +26,11 @@ export async function getCaseStatus(idCaso: string): Promise<CasoStatus | null> 
   return rows[0] ?? null;
 }
 
-/**
- * Persiste (append) um novo status para o caso.
- * @param idCaso Identificador do caso
- * @param status Objeto contendo etapa, especialista, probabilidade, timestamp
- */
 export async function saveCaseStatus(idCaso: string, status: CasoStatus): Promise<void> {
   const { etapa, especialista, probabilidade, timestamp } = status;
   await pool.query(
     `INSERT INTO casos (id_caso, etapa, especialista, probabilidade, timestamp)
-         VALUES ($1,     $2,    $3,            $4,           $5)`,
+         VALUES ($1, $2, $3, $4, $5)`,
     [idCaso, etapa, especialista, probabilidade ?? null, timestamp]
   );
 }
