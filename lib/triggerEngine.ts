@@ -3,7 +3,7 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-import { ExecutionContext, SyndicateAction, TriggerEvaluationResult } from './runtimeOrchestrator';
+import type { ExecutionContext, SyndicateAction, TriggerEvaluationResult } from './runtimeOrchestrator';
 
 interface Condition {
   field: string;
@@ -23,7 +23,6 @@ interface Rule {
   tags?: string[];
 }
 
-// Avalia operadores
 function evaluateCondition(payloadValue: any, operator: string, targetValue: any): boolean {
   switch (operator) {
     case '==': return payloadValue === targetValue;
@@ -43,7 +42,6 @@ function evaluateCondition(payloadValue: any, operator: string, targetValue: any
   }
 }
 
-// Carrega as regras YAML
 function loadRules(): Rule[] {
   const rulesPath = path.join(__dirname, 'rules.yaml');
   const fileContent = fs.readFileSync(rulesPath, 'utf8');
@@ -51,7 +49,6 @@ function loadRules(): Rule[] {
   return parsed.rules;
 }
 
-// Avalia se o contexto ativa alguma regra
 export function evaluateTriggers(context: ExecutionContext): TriggerEvaluationResult {
   const rules = loadRules();
   const matchingActions: SyndicateAction[] = [];
@@ -64,7 +61,6 @@ export function evaluateTriggers(context: ExecutionContext): TriggerEvaluationRe
 
     const conditionResults = rule.trigger.conditions.map(condition => {
       const rawValue = (context as any)[condition.field];
-
       const payloadValue =
         Array.isArray(rawValue) && typeof condition.value === 'number'
           ? rawValue.length
