@@ -1,8 +1,9 @@
-// runtimeOrchestrator.ts v2.0 — alias corrigido
+// runtimeOrchestrator.ts v2.0 — ajustado com integração a obiState
 
 import { evaluateTriggers } from './triggerEngine';
 import { executeTriggerActions } from './executeTriggerActions';
-import { getCaseStatus, saveCaseStatus } from './casoStore'; // ← alias '@/lib' substituído por caminho relativo
+import { getCaseStatus, saveCaseStatus } from './casoStore';
+import { loadObiState, updateObiState } from './obiState';
 
 interface IngestEvent {
   id: string;
@@ -48,10 +49,14 @@ interface ExecutionContext extends SyndicateContext {
 }
 
 export async function orchestrate(event: IngestEvent): Promise<void> {
-  // 🔎 Recupera estado anterior (caso exista)
+  const obiState = await loadObiState(event.id_caso);
+  if (obiState?.sinalizacaoManual === 'PAUSADO') {
+    console.log('⚠️ Caso pausado por sinalização manual. Pipeline encerrado.');
+    return;
+  }
+
   const estadoAnterior = await getCaseStatus(event.id_caso);
 
-  // 🗂️ Monta o contexto base
   const context: SyndicateContext = {
     idRegistro: event.id,
     contexto: event.dados.descricao,
@@ -63,7 +68,6 @@ export async function orchestrate(event: IngestEvent): Promise<void> {
     timestamp: event.timestamp,
   };
 
-  // 🧰 Exec context com helpers utilitários
   const execContext: ExecutionContext = {
     ...context,
     log: (msg: string) => console.log(`🧠 Obi: ${msg}`),
@@ -77,20 +81,21 @@ export async function orchestrate(event: IngestEvent): Promise<void> {
     },
   };
 
-  // 🚨 1) Avalia regras
   const triggerResult: TriggerEvaluationResult = await evaluateTriggers(execContext);
 
-  // ⚙️ 2) Executa ações, se houver
   if (triggerResult.triggered && triggerResult.actions.length > 0) {
     await executeTriggerActions(execContext, triggerResult.actions);
   }
 
-  // 💾 3) Persiste novo estado
   await saveCaseStatus(execContext.idCaso, {
     etapa: execContext.etapa,
     especialista: execContext.especialista,
     probabilidade: execContext.probabilidade,
     timestamp: execContext.timestamp,
+  });
+
+  await updateObiState(execContext.idCaso, {
+    ultimaEtapa: execContext.etapa,
   });
 
   execContext.log('Pipeline concluído com sucesso.');
