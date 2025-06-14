@@ -1,5 +1,4 @@
 // lib/casoStore.ts — acesso seguro ao PostgreSQL (Neon)
-// Funções exportadas: getCaseStatus, saveCaseStatus
 
 import { Pool } from 'pg';
 
