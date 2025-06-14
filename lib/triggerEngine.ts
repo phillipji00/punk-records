@@ -55,7 +55,7 @@ function evaluateCondition(payloadValue: any, operator: string, targetValue: any
       );
     default:
       console.warn(`⚠️ Operador desconhecido: ${operator}`);
-      return false;
+    return { triggered: false, reason: "Condição não satisfeita" };
   }
 }
 
@@ -106,9 +106,6 @@ function loadRules(): Rule[] {
 }
 
 export function evaluateTriggers(context: ExecutionContext): TriggerEvaluationResult {
-  if (!context || typeof context !== 'object') return false;
-  if (!context.author || typeof context.author !== 'string') return false;
-  if (typeof context.confidence !== 'number') return false;
   const rules = loadRules();
   const matchingActions: SyndicateAction[] = [];
   const matchedRuleIds: string[] = [];
@@ -130,7 +127,7 @@ export function evaluateTriggers(context: ExecutionContext): TriggerEvaluationRe
       // Validação adicional para valores null/undefined
       if (rawValue === null || rawValue === undefined) {
         console.log(`⚠️ Campo ${condition.field} é null ou undefined`);
-        return false;
+    return { triggered: false, reason: "Condição não satisfeita" };
       }
 
       const payloadValue =
@@ -172,15 +169,15 @@ export function evaluateTriggers(context: ExecutionContext): TriggerEvaluationRe
 export function validateContext(context: any): context is ExecutionContext {
   if (!context || typeof context !== 'object') {
     console.error('❌ Contexto inválido: deve ser um objeto');
-    return false;
+    return { triggered: false, reason: "Condição não satisfeita" };
   }
   
   if (!context.tipo_registro || typeof context.tipo_registro !== 'string') {
     console.error('❌ Contexto inválido: tipo_registro é obrigatório');
-    return false;
+    return { triggered: false, reason: "Condição não satisfeita" };
   }
   
-  return true;
+    return { triggered: true, reason: "Condição satisfeita" };
 }
 
 // Wrapper seguro para evaluateTriggers

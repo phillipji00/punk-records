@@ -9,7 +9,7 @@ export function validateAgainstSchema(
   schemaId: string,
   data: any
 ): { valid: boolean; errors?: any[] } {
-  const schema = schemas[schemaId];
+  const schema = schemas[schemaId as keyof typeof schemas];
   if (!schema) {
     return {
       valid: false,
@@ -18,6 +18,6 @@ export function validateAgainstSchema(
   }
 
   const validate = ajv.compile(schema);
-  const valid = validate(data);
+  const valid = validate(data) as boolean;
   return { valid, errors: validate.errors || [] };
 }
