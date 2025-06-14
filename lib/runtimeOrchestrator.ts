@@ -1,3 +1,4 @@
+import { validateAgainstSchema } from "../validators/schemaValidator";
 // runtimeOrchestrator.ts v2.0 — versão corrigida com tipos centralizados
 
 import { evaluateTriggerssSafe } from './triggerEngine';
@@ -43,6 +44,8 @@ export async function orchestrate(event: IngestEvent): Promise<void> {
     log.debug('Estado anterior do caso', { estadoAnterior });
 
     // Construir contexto
+const validation = validateAgainstSchema("vault_record_schema", context);
+if (!validation.valid) throw new Error("❌ Contexto inválido: " + JSON.stringify(validation.errors));
     const context: SyndicateContext = {
       idRegistro: event.id,
       contexto: event.dados.descricao || '',

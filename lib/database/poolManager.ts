@@ -6,6 +6,11 @@ interface PoolStats {
   waitingCount: number;
 }
 
+// Interface para resultados de query
+interface QueryResultRow {
+  [column: string]: any;
+}
+
 class PoolManager {
   private static instance: PoolManager;
   private pool: Pool | null = null;
@@ -128,8 +133,8 @@ class PoolManager {
     }
   }
   
-  // Método helper para queries com retry
-  async query<T = any>(
+  // Método helper para queries com retry - Versão correta com tipos
+  async query<T extends QueryResultRow = QueryResultRow>(
     text: string, 
     params?: any[], 
     retries: number = 3
@@ -139,7 +144,8 @@ class PoolManager {
     
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const result = await pool.query<T>(text, params);
+        // Cast necessário para compatibilidade com versões mais novas do @types/pg
+        const result = await pool.query(text, params) as QueryResult<T>;
         return result;
       } catch (error: any) {
         lastError = error;
@@ -195,6 +201,29 @@ process.on('SIGINT', async () => {
   await poolManager.closePool();
 });
 
-// Exportar instance e métodos convenientes
+// Criar funções wrapper para export - Solução limpa
+const query = <T extends QueryResultRow = QueryResultRow>(
+  text: string,
+  params?: any[],
+  retries?: number
+): Promise<QueryResult<T>> => {
+  return poolManager.query<T>(text, params, retries);
+};
+
+const transaction = <T>(
+  callback: (client: PoolClient) => Promise<T>
+): Promise<T> => {
+  return poolManager.transaction(callback);
+};
+
+const getHealthStatus = (): Promise<PoolStats & { healthy: boolean }> => {
+  return poolManager.getHealthStatus();
+};
+
+const closePool = (): Promise<void> => {
+  return poolManager.closePool();
+};
+
+// Exportar instance e métodos
 export default poolManager;
-export const { query, transaction, getHealthStatus, closePool } = poolManager;
+export { query, transaction, getHealthStatus, closePool };

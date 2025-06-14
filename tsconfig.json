@@ -1,65 +1,64 @@
 {
   "compilerOptions": {
-    /* Language and Environment */
-    "target": "ES2020",                          /* Set the JavaScript language version for emitted JavaScript */
-    "lib": ["ES2020"],                           /* Specify a set of bundled library declaration files */
     
-    /* Modules */
-    "module": "commonjs",                        /* Specify what module code is generated */
-    "rootDir": ".",                              /* Specify the root folder within your source files */
-    "moduleResolution": "node",                  /* Specify how TypeScript looks up a file from a given module specifier */
-    "baseUrl": ".",                              /* Specify the base directory to resolve non-relative module names */
-    "resolveJsonModule": true,                   /* Enable importing .json files */
+    "target": "ES2020",                          
+    "lib": ["ES2020"],                           
     
-    /* JavaScript Support */
-    "allowJs": false,                            /* Allow JavaScript files to be a part of your program */
-    "checkJs": false,                            /* Enable error reporting in type-checked JavaScript files */
     
-    /* Emit */
-    "declaration": true,                         /* Generate .d.ts files from TypeScript and JavaScript files */
-    "declarationMap": true,                      /* Create sourcemaps for d.ts files */
-    "sourceMap": true,                           /* Create source map files for emitted JavaScript files */
-    "outDir": "./dist",                          /* Specify an output folder for all emitted files */
-    "removeComments": true,                      /* Disable emitting comments */
-    "importHelpers": false,                      /* Allow importing helper functions from tslib once per project */
-    "downlevelIteration": true,                  /* Emit more compliant, but verbose and less performant JavaScript for iteration */
-    "preserveConstEnums": true,                  /* Disable erasing 'const enum' declarations in generated code */
+    "module": "commonjs",                        
+    "rootDir": ".",                              
+    "moduleResolution": "node",                  
+    "baseUrl": ".",                              
+    "resolveJsonModule": true,                   
     
-    /* Interop Constraints */
-    "isolatedModules": true,                     /* Ensure that each file can be safely transpiled without relying on other imports */
-    "esModuleInterop": true,                     /* Emit additional JavaScript to ease support for importing CommonJS modules */
-    "allowSyntheticDefaultImports": true,        /* Allow 'import x from y' when a module doesn't have a default export */
-    "forceConsistentCasingInFileNames": true,    /* Ensure that casing is correct in imports */
     
-    /* Type Checking */
-    "strict": true,                              /* Enable all strict type-checking options */
-    "noImplicitAny": true,                       /* Enable error reporting for expressions and declarations with an implied 'any' type */
-    "strictNullChecks": true,                    /* When type checking, take into account 'null' and 'undefined' */
-    "strictFunctionTypes": true,                 /* When assigning functions, check to ensure parameters and the return values are subtype-compatible */
-    "strictBindCallApply": true,                 /* Check that the arguments for 'bind', 'call', and 'apply' methods match the original function */
-    "strictPropertyInitialization": true,        /* Check for class properties that are declared but not set in the constructor */
-    "noImplicitThis": true,                      /* Enable error reporting when 'this' is given the type 'any' */
-    "alwaysStrict": true,                        /* Ensure 'use strict' is always emitted */
-    "noUnusedLocals": true,                      /* Enable error reporting when local variables aren't read */
-    "noUnusedParameters": true,                  /* Raise an error when a function parameter isn't read */
-    "noImplicitReturns": true,                   /* Enable error reporting for codepaths that do not explicitly return in a function */
-    "noFallthroughCasesInSwitch": true,         /* Enable error reporting for fallthrough cases in switch statements */
-    "noUncheckedIndexedAccess": false,           /* Add 'undefined' to a type when accessed using an index */
-    "noImplicitOverride": true,                  /* Ensure overriding members in derived classes are marked with an override modifier */
+    "allowJs": false,                            
+    "checkJs": false,                            
     
-    /* Completeness */
-    "skipDefaultLibCheck": true,                 /* Skip type checking .d.ts files that are included with TypeScript */
-    "skipLibCheck": true                         /* Skip type checking all .d.ts files */
+    
+    "declaration": true,                         
+    "declarationMap": true,                      
+    "sourceMap": true,                           
+    "outDir": "./dist",                          
+    "removeComments": true,                      
+    "importHelpers": false,                      
+    "downlevelIteration": true,                  
+    "preserveConstEnums": true,                  
+    
+    
+    "isolatedModules": true,                     
+    "esModuleInterop": true,                     
+    "allowSyntheticDefaultImports": true,        
+    "forceConsistentCasingInFileNames": true,    
+    
+    
+    "strict": true,                              
+    "noImplicitAny": true,                       
+    "strictNullChecks": true,                    
+    "strictFunctionTypes": true,                 
+    "strictBindCallApply": true,                 
+    "strictPropertyInitialization": true,        
+    "noImplicitThis": true,                      
+    "alwaysStrict": true,                        
+    "noUnusedLocals": true,                      
+    "noUnusedParameters": true,                  
+    "noImplicitReturns": true,                   
+    "noFallthroughCasesInSwitch": true,         
+    "noUncheckedIndexedAccess": false,           
+    "noImplicitOverride": true,                  
+    
+    
+    "skipDefaultLibCheck": true,                 
+    "skipLibCheck": true                         
   },
   "include": [
-    "api/**/*.ts",
-    "lib/**/*.ts"
+    "api*.ts",
+    "lib*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.spec.ts",
-    "**/*.test.ts",
+    "***.test.ts",
     "coverage",
     "logs"
   ],

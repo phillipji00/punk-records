@@ -106,6 +106,9 @@ function loadRules(): Rule[] {
 }
 
 export function evaluateTriggers(context: ExecutionContext): TriggerEvaluationResult {
+  if (!context || typeof context !== 'object') return false;
+  if (!context.author || typeof context.author !== 'string') return false;
+  if (typeof context.confidence !== 'number') return false;
   const rules = loadRules();
   const matchingActions: SyndicateAction[] = [];
   const matchedRuleIds: string[] = [];
