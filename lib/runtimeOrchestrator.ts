@@ -44,9 +44,9 @@ export async function orchestrate(event: IngestEvent): Promise<void> {
     log.debug('Estado anterior do caso', { estadoAnterior });
 
     // Construir contexto
-const validation = validateAgainstSchema("vault_record_schema", context);
-if (!validation.valid) throw new Error("❌ Contexto inválido: " + JSON.stringify(validation.errors));
     const context: SyndicateContext = {
+  const validation = validateAgainstSchema("vault_record_schema", context);
+  if (!validation.valid) throw new Error("❌ Contexto inválido: " + JSON.stringify(validation.errors));
       idRegistro: event.id,
       contexto: event.dados.descricao || '',
       autor: event.autor,

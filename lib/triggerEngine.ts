@@ -55,7 +55,7 @@ function evaluateCondition(payloadValue: any, operator: string, targetValue: any
       );
     default:
       console.warn(`⚠️ Operador desconhecido: ${operator}`);
-    return { triggered: false, reason: "Condição não satisfeita" };
+    return false;
   }
 }
 
@@ -127,7 +127,7 @@ export function evaluateTriggers(context: ExecutionContext): TriggerEvaluationRe
       // Validação adicional para valores null/undefined
       if (rawValue === null || rawValue === undefined) {
         console.log(`⚠️ Campo ${condition.field} é null ou undefined`);
-    return { triggered: false, reason: "Condição não satisfeita" };
+    return false;
       }
 
       const payloadValue =
@@ -169,15 +169,15 @@ export function evaluateTriggers(context: ExecutionContext): TriggerEvaluationRe
 export function validateContext(context: any): context is ExecutionContext {
   if (!context || typeof context !== 'object') {
     console.error('❌ Contexto inválido: deve ser um objeto');
-    return { triggered: false, reason: "Condição não satisfeita" };
+    return false;
   }
   
   if (!context.tipo_registro || typeof context.tipo_registro !== 'string') {
     console.error('❌ Contexto inválido: tipo_registro é obrigatório');
-    return { triggered: false, reason: "Condição não satisfeita" };
+    return false;
   }
   
-    return { triggered: true, reason: "Condição satisfeita" };
+    return true;
 }
 
 // Wrapper seguro para evaluateTriggers

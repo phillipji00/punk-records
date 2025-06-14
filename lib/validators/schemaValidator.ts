@@ -10,6 +10,9 @@ export function validateAgainstSchema(
   data: any
 ): { valid: boolean; errors?: any[] } {
   const schema = schemas[schemaId as keyof typeof schemas];
+  if (!schema || typeof schema !== "object") {
+    return { valid: false, errors: [{ message: "Schema inválido ou não encontrado." }] };
+  }
   if (!schema) {
     return {
       valid: false,
