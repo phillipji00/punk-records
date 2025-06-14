@@ -17,7 +17,7 @@ import {
 } from './types/common';
 
 export async function orchestrate(event: IngestEvent): Promise<void> {
-  // Validar evento
+  const context = {    contexto: event.dados?.descricao || "",    autor: event.autor,    tipo_registro: event.tipo_registro,    timestamp: new Date().toISOString(),    confidence: event.dados?.confidence || 0  };  const validation = validateAgainstSchema("vault_record_schema", context);  if (!validation.valid) throw new Error("❌ Contexto inválido: " + JSON.stringify(validation.errors));  // Validar evento
   if (!isValidIngestEvent(event)) {
     log.error('Evento inválido recebido', { event });
     throw new Error('Evento de ingestão inválido');
@@ -45,8 +45,6 @@ export async function orchestrate(event: IngestEvent): Promise<void> {
 
     // Construir contexto
     const context: SyndicateContext = {
-  const validation = validateAgainstSchema("vault_record_schema", context);
-  if (!validation.valid) throw new Error("❌ Contexto inválido: " + JSON.stringify(validation.errors));
       contexto: event.dados.descricao || '',
       autor: event.autor,
       etapa: estadoAnterior?.etapa || event.etapa || ETAPAS_PIPELINE.INTAKE,
