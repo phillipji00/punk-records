@@ -11,7 +11,7 @@ export interface CasoStatus {
 
 export async function getCaseStatus(idCaso: string): Promise<CasoStatus | null> {
   try {
-    const { rows } = await poolManager.query<CasoStatus>(
+    const result = await poolManager.query<CasoStatus>(
       `SELECT etapa, especialista, probabilidade, timestamp
          FROM casos
         WHERE id_caso = $1
@@ -20,7 +20,7 @@ export async function getCaseStatus(idCaso: string): Promise<CasoStatus | null> 
       [idCaso]
     );
     
-    return rows[0] ?? null;
+    return result.rows[0] ?? null;
   } catch (error) {
     console.error('❌ Erro ao buscar status do caso:', error);
     throw error;
@@ -87,14 +87,14 @@ export async function saveRegistro(
  */
 export async function getRegistrosByTraceId(trace_id: string): Promise<any[]> {
   try {
-    const { rows } = await poolManager.query(
+    const result = await poolManager.query(
       `SELECT * FROM registros 
        WHERE trace_id = $1 
        ORDER BY timestamp ASC`,
       [trace_id]
     );
     
-    return rows;
+    return result.rows;
   } catch (error) {
     console.error('❌ Erro ao buscar registros por trace_id:', error);
     throw error;
@@ -106,7 +106,7 @@ export async function getRegistrosByTraceId(trace_id: string): Promise<any[]> {
  */
 export async function getCaseHistory(idCaso: string): Promise<CasoStatus[]> {
   try {
-    const { rows } = await poolManager.query<CasoStatus>(
+    const result = await poolManager.query<CasoStatus>(
       `SELECT etapa, especialista, probabilidade, timestamp
          FROM casos
         WHERE id_caso = $1
@@ -114,7 +114,7 @@ export async function getCaseHistory(idCaso: string): Promise<CasoStatus[]> {
       [idCaso]
     );
     
-    return rows;
+    return result.rows;
   } catch (error) {
     console.error('❌ Erro ao buscar histórico do caso:', error);
     throw error;

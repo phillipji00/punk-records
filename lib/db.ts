@@ -7,7 +7,7 @@ if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL é obrigatória em produção');
   }
   // Em desenvolvimento, usar URL padrão local
-  console.warn('⚠️ Usando banco de dados local de desenvolvimento');
+  console.warn(⚠️ Usando banco de dados local de desenvolvimento');
   process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/syndicate_dev';
 }
 
@@ -28,19 +28,19 @@ const poolConfig: PoolConfig = {
 const pool = new Pool(poolConfig);
 
 // Adicionar handler de erro global
-pool.on('error', (err, client) => {
+pool.on('error', (err) => {
   console.error('❌ Erro inesperado no pool de conexões:', err);
   // Não fazer throw aqui, pois isso crasharia o processo
   // O pool tentará reconectar automaticamente
 });
 
 // Log quando uma nova conexão é estabelecida
-pool.on('connect', (client) => {
+pool.on('connect', () => {
   console.log('✅ Nova conexão estabelecida com o banco de dados');
 });
 
 // Log quando uma conexão é removida
-pool.on('remove', (client) => {
+pool.on('remove', () => {
   console.log('🔄 Conexão removida do pool');
 });
 

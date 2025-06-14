@@ -1,211 +1,291 @@
-import express from 'express';
-import Joi from 'joi';
-import jwt from 'jsonwebtoken';
-import 'dotenv/config';
-import git from 'isomorphic-git';
-import { createRequire } from 'module';
-import fs from 'fs';
-import { promises as fsPromises } from 'fs';
-import path from 'path';
-import os from 'os';
-const require = createRequire(import.meta.url);
-const http = require('isomorphic-git/http/node');
-console.log('🔧 DEBUG - Variáveis de ambiente:');
-console.log('GIT_REPO_URL:', process.env.GIT_REPO_URL);
-console.log('GITHUB_TOKEN existe:', !!process.env.GITHUB_TOKEN);
-console.log('GITHUB_TOKEN primeiros 10 chars:', process.env.GITHUB_TOKEN?.substring(0, 10));
-console.log('NODE_ENV:', process.env.NODE_ENV);
-const app = express();
-// --- Middlewares ---
-app.use(express.json({
-    limit: '10mb'
-}));
-// --- Lógica Reutilizável de Git ---
-const getRepo = async (traceId) => {
-    const dir = path.join(os.tmpdir(), 'syndicate-vault');
-    if (!process.env.GIT_REPO_URL) {
-        throw new Error('GIT_REPO_URL não configurada');
-    }
-    try {
-        const repoExists = await fsPromises.stat(path.join(dir, '.git')).catch(() => false);
-        if (repoExists) {
-            console.log(`[${traceId}] Pull existing repo...`);
-            await git.pull({
-                fs,
-                http,
-                dir,
-                onAuth: () => ({
-                    username: process.env.GITHUB_TOKEN,
-                    password: ''
-                }),
-                author: { name: 'Syndicate Agent', email: 'bot@syndicate.dev' },
-                singleBranch: true
-            });
-        }
-        else {
-            console.log(`[${traceId}] Cloning repo...`);
-            await fsPromises.rm(dir, { recursive: true, force: true });
-            await git.clone({
-                fs,
-                http,
-                dir,
-                url: process.env.GIT_REPO_URL,
-                onAuth: () => ({
-                    username: process.env.GITHUB_TOKEN,
-                    password: ''
-                }),
-                singleBranch: true,
-                depth: 1
-            });
-        }
-        return dir;
-    }
-    catch (error) {
-        console.error(`[${traceId}] Git error:`, error);
-        throw error;
-    }
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-// --- Middleware de Autenticação ---
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
+const helmet_1 = __importDefault(require("helmet"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+const morgan_1 = __importDefault(require("morgan"));
+const dotenv_1 = __importDefault(require("dotenv"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const joi_1 = __importDefault(require("joi"));
+const crypto_1 = __importDefault(require("crypto"));
+const db_1 = __importDefault(require("../lib/db"));
+dotenv_1.default.config();
+let orchestrate;
+try {
+    const orchestratorModule = require('../lib/runtimeOrchestrator');
+    orchestrate = orchestratorModule.orchestrate;
+    console.log('✅ Runtime Orchestrator carregado com sucesso');
+}
+catch (error) {
+    console.error('⚠️ Runtime Orchestrator não encontrado, usando modo fallback');
+    orchestrate = async (event) => {
+        console.log('🔄 Orchestrator em modo fallback:', event);
+        return {
+            status: 'fallback_mode',
+            message: 'Sistema em modo degradado - análise manual necessária'
+        };
+    };
+}
+const app = (0, express_1.default)();
+app.set('trust proxy', 1);
+app.use(express_1.default.json({ limit: '10mb' }));
+app.use((0, cors_1.default)({ origin: process.env.CORS_ORIGIN || '*' }));
+app.use((0, helmet_1.default)());
+app.use((0, morgan_1.default)(process.env.NODE_ENV === 'production' ? 'tiny' : 'dev'));
+const limiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => Array.isArray(req.headers['x-forwarded-for'])
+        ? req.headers['x-forwarded-for'][0]
+        : req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown-ip',
+});
+app.use(limiter);
+const activeOrchestrations = new Map();
+setInterval(() => {
+    const now = Date.now();
+    const maxAge = 10 * 60 * 1000;
+    for (const [traceId, tracker] of activeOrchestrations.entries()) {
+        if (now - tracker.startTime > maxAge) {
+            activeOrchestrations.delete(traceId);
+        }
+    }
+}, 5 * 60 * 1000);
 const verifyToken = (req, res, next) => {
-    if (!process.env.JWT_SECRET) {
-        console.warn('⚠️ JWT_SECRET não configurado - MODO DE DESENVOLVIMENTO');
+    const secret = process.env.JWT_SECRET;
+    if (!secret && process.env.NODE_ENV === 'production') {
+        return res.status(500).json({ error: 'JWT_SECRET não configurado' });
+    }
+    if (!secret && process.env.NODE_ENV !== 'production') {
+        console.warn('⚠️ JWT_SECRET não configurado - modo desenvolvimento ativo');
         return next();
     }
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Token Bearer requerido' });
+        return res.status(401).json({ error: 'Token Bearer ausente.' });
     }
-    const token = authHeader.substring(7);
     try {
-        jwt.verify(token, process.env.JWT_SECRET);
+        jsonwebtoken_1.default.verify(authHeader.substring(7), secret);
         next();
     }
-    catch {
-        res.status(401).json({ error: 'Token inválido' });
+    catch (error) {
+        return res.status(401).json({ error: 'Token inválido ou expirado.' });
     }
 };
-// --- Rotas da API ---
-app.get('/api/health', (req, res) => {
-    res.status(200).json({
-        status: 'operational',
-        timestamp: new Date().toISOString(),
-        env: process.env.NODE_ENV || 'development',
-        gitConfigured: !!process.env.GIT_REPO_URL,
-        tokenConfigured: !!process.env.GITHUB_TOKEN
-    });
-});
-// ROTA DE INGESTÃO COM ENCODING CORRIGIDO
-app.post('/api/ingest', verifyToken, async (req, res) => {
-    const schema = Joi.object({
-        tipo_registro: Joi.string().valid('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline').required(),
-        autor: Joi.string().required(),
-        dados: Joi.object({
-            arquivo_alvo: Joi.string().required(),
-            conteudo: Joi.string().required()
-        }).required()
-    });
-    const { error } = schema.validate(req.body);
-    if (error)
-        return res.status(400).json({ error: error.details[0].message });
-    const { autor, dados } = req.body;
-    const { arquivo_alvo, conteudo } = dados;
-    const traceId = Math.random().toString(36).substring(2);
-    console.log(`[${traceId}] 🚀 Starting ingest:`, { autor, arquivo_alvo });
-    try {
-        const repoDir = await getRepo(traceId);
-        const filepath = path.join(repoDir, arquivo_alvo);
-        // Garantir que o diretório existe
-        await fsPromises.mkdir(path.dirname(filepath), { recursive: true });
-        // CORREÇÃO: Escrita com encoding UTF-8 explícito
-        const timestamp = new Date().toISOString();
-        const formattedContent = `\n---\n[${timestamp}] ${conteudo}`;
-        await fsPromises.writeFile(filepath, Buffer.from(formattedContent, 'utf8'), { flag: 'a' });
-        await git.add({ fs, dir: repoDir, filepath: arquivo_alvo });
-        await git.commit({
-            fs,
-            dir: repoDir,
-            author: { name: autor, email: 'syndicate@vault.ai' },
-            message: `docs: Nova entrada em ${arquivo_alvo} por ${autor}`
+const errorHandler = (err, req, res, _next) => {
+    console.error('❌ Erro não tratado:', err);
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(500).json({
+            error: 'Erro interno do servidor',
+            traceId: req.headers['x-trace-id'] || 'unknown'
         });
-        if (!process.env.GITHUB_TOKEN) {
-            throw new Error('GITHUB_TOKEN não configurado');
-        }
-        console.log(`[${traceId}] 🔄 Pushing to GitHub...`);
-        await git.push({
-            fs,
-            http,
-            dir: repoDir,
-            onAuth: () => ({
-                username: process.env.GITHUB_TOKEN,
-                password: ''
-            })
-        });
-        console.log(`[${traceId}] ✅ Success!`);
-        res.status(201).json({ status: "created", traceId });
     }
-    catch (e) {
-        console.error(`[${traceId}] ❌ Error:`, e.message);
+    return res.status(500).json({
+        error: err.message,
+        stack: err.stack,
+        traceId: req.headers['x-trace-id'] || 'unknown'
+    });
+};
+app.get('/api/health', async (_req, res) => {
+    try {
+        const client = await db_1.default.connect();
+        await client.query('SELECT 1');
+        client.release();
+        const poolStatus = {
+            totalCount: db_1.default.totalCount,
+            idleCount: db_1.default.idleCount,
+            waitingCount: db_1.default.waitingCount,
+        };
+        res.status(200).json({
+            status: 'operational',
+            db: 'connected',
+            poolStatus,
+            orchestrator: orchestrate ? 'loaded' : 'fallback',
+            activeOrchestrations: activeOrchestrations.size,
+            timestamp: new Date().toISOString(),
+        });
+    }
+    catch (err) {
         res.status(500).json({
-            error: 'Falha na operação Git',
-            traceId,
-            details: process.env.NODE_ENV === 'development' ? e.message : undefined
+            status: 'degraded',
+            db: 'error',
+            error: 'DB connection failed',
+            message: err.message
         });
     }
 });
-// ROTA DE BUSCA COM ENCODING CORRIGIDO
-app.get('/api/search', verifyToken, async (req, res) => {
-    const traceId = Math.random().toString(36).substring(2);
-    const { tag, limit = 10, offset = 0 } = req.query;
-    if (!tag) {
-        return res.status(400).json({ error: 'Parâmetro "tag" é obrigatório' });
-    }
+app.post('/api/ingest', verifyToken, async (req, res, next) => {
+    const schema = joi_1.default.object({
+        tipo_registro: joi_1.default.string()
+            .valid('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline', 'registro_misc', 'cross_validation_result')
+            .required(),
+        autor: joi_1.default.string().required(),
+        dados: joi_1.default.object().required().unknown(true),
+    });
+    const traceId = crypto_1.default.randomUUID();
+    req.headers['x-trace-id'] = traceId;
     try {
-        const repoDir = await getRepo(traceId);
-        const searchDir = path.join(repoDir, 'pandora-box');
-        const dirExists = await fsPromises.stat(searchDir).catch(() => false);
-        if (!dirExists) {
-            return res.status(200).json({ total_count: 0, snippets: [] });
+        await schema.validateAsync(req.body, { abortEarly: false });
+        const { tipo_registro, autor, dados } = req.body;
+        const result = await db_1.default.query('INSERT INTO registros (tipo_registro, autor, dados, trace_id) VALUES ($1, $2, $3, $4) RETURNING id', [tipo_registro, autor, dados, traceId]);
+        const registroId = result.rows[0].id;
+        const enrichedEvent = {
+            ...req.body,
+            id: registroId,
+            trace_id: traceId,
+            timestamp: new Date().toISOString(),
+        };
+        const orchestrationPromise = orchestrate(enrichedEvent);
+        activeOrchestrations.set(traceId, {
+            promise: orchestrationPromise,
+            startTime: Date.now(),
+            status: 'processing'
+        });
+        orchestrationPromise
+            .then(() => {
+            console.log(`✅ Orchestration concluída para ${traceId}`);
+            const tracker = activeOrchestrations.get(traceId);
+            if (tracker) {
+                tracker.status = 'completed';
+            }
+        })
+            .catch((error) => {
+            console.error(`❌ Orchestration falhou para ${traceId}:`, error);
+            const tracker = activeOrchestrations.get(traceId);
+            if (tracker) {
+                tracker.status = 'failed';
+                tracker.error = error.message;
+            }
+        })
+            .finally(() => {
+            setTimeout(() => {
+                activeOrchestrations.delete(traceId);
+            }, 5 * 60 * 1000);
+        });
+        return res.status(202).json({
+            status: 'processing',
+            traceId,
+            registroId,
+            statusUrl: `/api/status/${traceId}`,
+            message: 'Registro recebido e processamento iniciado'
+        });
+    }
+    catch (err) {
+        if (err.isJoi) {
+            return res.status(400).json({
+                error: 'Payload inválido',
+                detalhes: err.details,
+                traceId
+            });
         }
-        const allFiles = await fsPromises.readdir(searchDir, { recursive: true });
-        let allSnippets = [];
-        const searchRegex = new RegExp(tag, 'i');
-        for (const file of allFiles) {
-            if (typeof file === 'string' && file.endsWith('.md')) {
-                const filePath = path.join(searchDir, file);
-                // CORREÇÃO: Leitura com encoding UTF-8 explícito
-                const buffer = await fsPromises.readFile(filePath);
-                const content = buffer.toString('utf8');
-                const lines = content.split('\n');
-                lines.forEach((line, index) => {
-                    if (searchRegex.test(line)) {
-                        allSnippets.push({
-                            texto: line.trim(),
-                            fonte: path.join('pandora-box', file),
-                            linha: index + 1,
-                        });
-                    }
+        return next(err);
+    }
+});
+app.get('/api/status/:traceId', async (req, res) => {
+    const { traceId } = req.params;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(traceId)) {
+        return res.status(400).json({ error: 'Trace ID inválido' });
+    }
+    const tracker = activeOrchestrations.get(traceId);
+    if (!tracker) {
+        try {
+            const result = await db_1.default.query('SELECT * FROM registros WHERE trace_id = $1 LIMIT 1', [traceId]);
+            if (result.rows.length > 0) {
+                return res.json({
+                    traceId,
+                    status: 'completed',
+                    message: 'Processamento concluído (histórico)',
+                    registro: result.rows[0]
                 });
             }
         }
-        const paginatedSnippets = allSnippets.slice(Number(offset), Number(offset) + Number(limit));
-        console.log(`[${traceId}] 🔍 Busca por "${tag}": ${allSnippets.length} resultados`);
-        res.status(200).json({
-            total_count: allSnippets.length,
-            snippets: paginatedSnippets,
+        catch (error) {
+            console.error('Erro ao buscar registro:', error);
+        }
+        return res.status(404).json({
+            error: 'Trace ID não encontrado',
+            message: 'O registro pode ter expirado ou não existe'
         });
     }
-    catch (e) {
-        console.error(`[${traceId}] ❌ Search error:`, e.message);
-        res.status(500).json({ error: 'Falha na busca', traceId });
+    const duration = Date.now() - tracker.startTime;
+    return res.json({
+        traceId,
+        status: tracker.status,
+        duration: `${duration}ms`,
+        error: tracker.error,
+        message: tracker.status === 'processing'
+            ? 'Análise em andamento...'
+            : tracker.status === 'completed'
+                ? 'Análise concluída com sucesso'
+                : 'Análise falhou - verifique os logs'
+    });
+});
+app.get('/api/search', verifyToken, async (req, res, next) => {
+    const tag = req.query.tag || '';
+    const limit = Math.min(Number(req.query.limit || 10), 100);
+    const offset = Math.max(Number(req.query.offset || 0), 0);
+    if (!tag || tag.length < 2) {
+        return res.status(400).json({
+            error: 'Parâmetro "tag" é obrigatório e deve ter pelo menos 2 caracteres'
+        });
+    }
+    try {
+        const result = await db_1.default.query(`SELECT * FROM registros
+       WHERE tipo_registro ILIKE $1 OR autor ILIKE $1 OR dados::text ILIKE $1
+       ORDER BY timestamp DESC
+       LIMIT $2 OFFSET $3`, [`%${tag}%`, limit, offset]);
+        const countResult = await db_1.default.query(`SELECT COUNT(*) FROM registros
+       WHERE tipo_registro ILIKE $1 OR autor ILIKE $1 OR dados::text ILIKE $1`, [`%${tag}%`]);
+        const totalCount = parseInt(countResult.rows[0].count);
+        return res.status(200).json({
+            total_count: totalCount,
+            page_size: limit,
+            page: Math.floor(offset / limit) + 1,
+            total_pages: Math.ceil(totalCount / limit),
+            snippets: result.rows
+        });
+    }
+    catch (err) {
+        return next(err);
     }
 });
-// Para desenvolvimento local
+app.use((req, res) => {
+    res.status(404).json({
+        error: 'Endpoint não encontrado',
+        path: req.path,
+        method: req.method
+    });
+});
+app.use(errorHandler);
+process.on('SIGTERM', async () => {
+    console.log('📛 SIGTERM recebido, finalizando servidor...');
+    server.close(() => {
+        console.log('✅ Servidor HTTP fechado');
+    });
+    const timeout = setTimeout(() => {
+        console.log('⚠️ Timeout aguardando orchestrations - forçando saída');
+        process.exit(0);
+    }, 30000);
+    if (activeOrchestrations.size > 0) {
+        console.log(`⏳ Aguardando ${activeOrchestrations.size} orchestrations ativas...`);
+        await Promise.allSettled(Array.from(activeOrchestrations.values()).map(t => t.promise));
+    }
+    clearTimeout(timeout);
+    process.exit(0);
+});
+let server;
 if (process.env.NODE_ENV !== 'production') {
     const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`🚀 Syndicate Vault API rodando na porta ${PORT}`);
-        console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+    server = app.listen(PORT, () => {
+        console.log(`🚀 Syndicate API rodando em http://localhost:${PORT}`);
+        console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
     });
 }
-export default app;
+exports.default = app;
 //# sourceMappingURL=index.js.map

@@ -174,7 +174,7 @@ export function createTestEvent(partial: Partial<IngestEvent>): IngestEvent {
 export async function validateOrchestrator(): Promise<boolean> {
   try {
     // Testar com evento mínimo
-    const testEvent = createTestEvent({
+    createTestEvent({
       id_caso: 'health-check',
       tipo_registro: 'registro_misc',
       dados: { descricao: 'Health check' }

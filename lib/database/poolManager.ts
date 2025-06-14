@@ -1,4 +1,4 @@
-import { Pool, PoolConfig, PoolClient } from 'pg';
+import { Pool, PoolConfig, PoolClient, QueryResult } from 'pg';
 
 interface PoolStats {
   totalCount: number;
@@ -61,22 +61,22 @@ class PoolManager {
     if (!this.pool) return;
     
     // Monitorar erros do pool
-    this.pool.on('error', (err, client) => {
+    this.pool.on('error', (err) => {
       console.error('❌ Pool error:', err);
       // Não fazer throw - o pool tentará reconectar
     });
     
     // Log de conexões (apenas em desenvolvimento)
     if (process.env.NODE_ENV !== 'production') {
-      this.pool.on('connect', (client) => {
+      this.pool.on('connect', () => {
         console.log('✅ Nova conexão estabelecida');
       });
       
-      this.pool.on('acquire', (client) => {
+      this.pool.on('acquire', () => {
         console.log('🔄 Cliente adquirido do pool');
       });
       
-      this.pool.on('remove', (client) => {
+      this.pool.on('remove', () => {
         console.log('🔄 Cliente removido do pool');
       });
     }
@@ -133,7 +133,7 @@ class PoolManager {
     text: string, 
     params?: any[], 
     retries: number = 3
-  ): Promise<{ rows: T[]; rowCount: number }> {
+  ): Promise<QueryResult<T>> {
     const pool = this.getPool();
     let lastError: Error | null = null;
     

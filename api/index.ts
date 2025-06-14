@@ -102,7 +102,7 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
 };
 
 // ─── Error Handler Middleware ─────────────────────────────────────────
-const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+const errorHandler = (err: Error, req: Request, res: Response, _next: NextFunction) => {
   console.error('❌ Erro não tratado:', err);
   
   // Não expor detalhes em produção
@@ -205,14 +205,14 @@ app.post('/api/ingest', verifyToken, async (req: Request, res: Response, next: N
     
     // Processar em background com tratamento de erro
     orchestrationPromise
-      .then((result) => {
+      .then(() => {
         console.log(`✅ Orchestration concluída para ${traceId}`);
         const tracker = activeOrchestrations.get(traceId);
         if (tracker) {
           tracker.status = 'completed';
         }
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         console.error(`❌ Orchestration falhou para ${traceId}:`, error);
         const tracker = activeOrchestrations.get(traceId);
         if (tracker) {
@@ -245,7 +245,7 @@ app.post('/api/ingest', verifyToken, async (req: Request, res: Response, next: N
       });
     }
     // Passar para error handler
-    next(err);
+    return next(err);
   }
 });
 
@@ -332,7 +332,7 @@ app.get('/api/search', verifyToken, async (req: Request, res: Response, next: Ne
     
     const totalCount = parseInt(countResult.rows[0].count);
     
-    res.status(200).json({ 
+    return res.status(200).json({ 
       total_count: totalCount,
       page_size: limit,
       page: Math.floor(offset / limit) + 1,
@@ -340,7 +340,7 @@ app.get('/api/search', verifyToken, async (req: Request, res: Response, next: Ne
       snippets: result.rows 
     });
   } catch (err: any) {
-    next(err);
+    return next(err);
   }
 });
 
