@@ -1,19 +1,17 @@
+// triggerEngine.ts — restauração do original com tipagem ajustada para compatibilidade
+
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
+import { ExecutionContext, SyndicateAction, TriggerEvaluationResult } from './runtimeOrchestrator';
 
-type Condition = {
+interface Condition {
   field: string;
   operator: string;
   value: any;
-};
+}
 
-type Action = {
-  type: string;
-  [key: string]: any;
-};
-
-type Rule = {
+interface Rule {
   id: string;
   name: string;
   description: string;
@@ -21,14 +19,9 @@ type Rule = {
     event: string;
     conditions: Condition[];
   };
-  actions: Action[];
+  actions: SyndicateAction[];
   tags?: string[];
-};
-
-type EventPayload = {
-  event: string;
-  [key: string]: any;
-};
+}
 
 // Avalia operadores
 function evaluateCondition(payloadValue: any, operator: string, targetValue: any): boolean {
@@ -58,25 +51,20 @@ function loadRules(): Rule[] {
   return parsed.rules;
 }
 
-// Avalia se o payload ativa alguma regra
-export function evaluateTriggers(eventPayload: EventPayload): {
-  triggered: boolean;
-  matchedRules: string[];
-  actions: Action[];
-} {
+// Avalia se o contexto ativa alguma regra
+export function evaluateTriggers(context: ExecutionContext): TriggerEvaluationResult {
   const rules = loadRules();
-  const matchingActions: Action[] = [];
+  const matchingActions: SyndicateAction[] = [];
   const matchedRuleIds: string[] = [];
 
   for (const rule of rules) {
-    if (rule.trigger.event !== eventPayload.event) continue;
+    if (rule.trigger.event !== context.tipo_registro) continue;
 
     console.log(`\n🔍 Testando regra: ${rule.id}`);
 
     const conditionResults = rule.trigger.conditions.map(condition => {
-      const rawValue = eventPayload[condition.field];
+      const rawValue = (context as any)[condition.field];
 
-      // Se esperarmos um número e o valor for array, usa .length
       const payloadValue =
         Array.isArray(rawValue) && typeof condition.value === 'number'
           ? rawValue.length
