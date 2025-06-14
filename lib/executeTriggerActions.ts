@@ -1,95 +1,86 @@
-type Action = {
-  type: string;
-  [key: string]: any;
-};
+// executeTriggerActions.ts — versão corrigida com tipos centralizados
 
-type ExecutionContext = {
-  log: (msg: string) => void;
-  advancePipeline: (toStage: string) => void;
-  activateSpecialist?: (id: string) => Promise<void>;
-  activateProtocol?: (name: string) => Promise<void>;
-  modifyScore?: (field: string, adjustment: number) => void;
-  haltPipeline?: (reason: string) => void;
-};
+import { SyndicateAction, ExecutionContext } from './types/common';
+import { log } from './utils/logger';
 
-export async function executeTriggerActions(actions: Action[], context: ExecutionContext): Promise<void> {
+export async function executeTriggerActions(
+  actions: SyndicateAction[], 
+  context: ExecutionContext
+): Promise<void> {
+  log.debug('Executando ações de trigger', { 
+    action_count: actions.length,
+    id_caso: context.idCaso 
+  });
+  
   for (const action of actions) {
-    switch (action.type) {
-      case 'log':
-        context.log?.(action.message);
-        break;
-
-      case 'advance_pipeline':
-        context.advancePipeline?.(action.to_stage);
-        break;
-
-      case 'activate_specialist':
-        await context.activateSpecialist?.(action.target);
-        break;
-
-      case 'activate_protocol':
-        await context.activateProtocol?.(action.protocol);
-        break;
-
-      case 'modify_score':
-        context.modifyScore?.(action.field, action.adjustment);
-        break;
-
-      case 'halt_pipeline':
-        context.haltPipeline?.(action.reason);
-        break;
-
-      default:
-        context.log?.(`⚠️ Ação desconhecida: ${action.type}`);
-        break;
+    try {
+      await executeSingleAction(action, context);
+    } catch (error: any) {
+      log.error('Erro ao executar ação de trigger', {
+        action_type: action.type,
+        error: error.message,
+        id_caso: context.idCaso
+      });
+      // Continuar com outras ações mesmo se uma falhar
     }
   }
-}// executeTriggerActions.ts — versão corrigida com tipagem compatível e sua lógica original mantida
+}
 
-type Action = {
-  type: string;
-  [key: string]: any;
-};
+async function executeSingleAction(
+  action: SyndicateAction, 
+  context: ExecutionContext
+): Promise<void> {
+  log.debug('Executando ação', { 
+    type: action.type, 
+    params: action.params 
+  });
+  
+  switch (action.type) {
+    case 'log':
+      if (action.message) {
+        context.log(action.message);
+      }
+      break;
 
-type ExecutionContext = {
-  log: (msg: string) => void;
-  advancePipeline: (toStage: string) => void;
-  activateSpecialist?: (id: string) => Promise<void>;
-  activateProtocol?: (name: string) => Promise<void>;
-  modifyScore?: (field: string, adjustment: number) => void;
-  haltPipeline?: (reason: string) => void;
-};
+    case 'advance_pipeline':
+      if (action.to_stage) {
+        context.advancePipeline(action.to_stage);
+      }
+      break;
 
-export async function executeTriggerActions(actions: Action[], context: ExecutionContext): Promise<void> {
-  for (const action of actions) {
-    switch (action.type) {
-      case 'log':
-        context.log?.(action.message);
-        break;
+    case 'activate_specialist':
+      if (action.target && context.activateSpecialist) {
+        await context.activateSpecialist(action.target);
+      }
+      break;
 
-      case 'advance_pipeline':
-        context.advancePipeline?.(action.to_stage);
-        break;
+    case 'activate_protocol':
+      if (action.protocol && context.activateProtocol) {
+        await context.activateProtocol(action.protocol);
+      }
+      break;
 
-      case 'activate_specialist':
-        await context.activateSpecialist?.(action.target);
-        break;
+    case 'modify_score':
+      if (action.field && action.adjustment !== undefined && context.modifyScore) {
+        context.modifyScore(action.field, action.adjustment);
+      }
+      break;
 
-      case 'activate_protocol':
-        await context.activateProtocol?.(action.protocol);
-        break;
+    case 'halt_pipeline':
+      if (action.reason && context.haltPipeline) {
+        context.haltPipeline(action.reason);
+      }
+      break;
 
-      case 'modify_score':
-        context.modifyScore?.(action.field, action.adjustment);
-        break;
-
-      case 'halt_pipeline':
-        context.haltPipeline?.(action.reason);
-        break;
-
-      default:
-        context.log?.(`⚠️ Ação desconhecida: ${action.type}`);
-        break;
-    }
+    default:
+      log.warn(`⚠️ Ação desconhecida: ${action.type}`, {
+        action,
+        id_caso: context.idCaso
+      });
+      break;
   }
+  
+  log.debug('Ação executada com sucesso', { 
+    type: action.type 
+  });
 }
