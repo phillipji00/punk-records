@@ -1,11 +1,6 @@
-// runtimeOrchestrator.ts v2.0 — ajustado com integração a obiState
+// lib/runtimeOrchestrator.ts — corrigido para exportar tipos usados externamente
 
-import { evaluateTriggers } from './triggerEngine';
-import { executeTriggerActions } from './executeTriggerActions';
-import { getCaseStatus, saveCaseStatus } from './casoStore';
-import { loadObiState, updateObiState } from './obiState';
-
-interface IngestEvent {
+export interface IngestEvent {
   id: string;
   timestamp: string;
   tipo_registro: string;
@@ -16,7 +11,7 @@ interface IngestEvent {
   id_caso: string;
 }
 
-interface SyndicateContext {
+export interface SyndicateContext {
   idRegistro: string;
   contexto: string;
   autor: string;
@@ -27,19 +22,19 @@ interface SyndicateContext {
   timestamp: string;
 }
 
-interface SyndicateAction {
+export interface SyndicateAction {
   id: string;
   type: string;
   params?: Record<string, any>;
 }
 
-interface TriggerEvaluationResult {
+export interface TriggerEvaluationResult {
   triggered: boolean;
   matchedRules: string[];
   actions: SyndicateAction[];
 }
 
-interface ExecutionContext extends SyndicateContext {
+export interface ExecutionContext extends SyndicateContext {
   log: (msg: string) => void;
   advancePipeline: (toStage: string) => void;
   activateSpecialist?: (id: string) => Promise<void>;
@@ -47,6 +42,11 @@ interface ExecutionContext extends SyndicateContext {
   modifyScore?: (field: string, value: number) => void;
   haltPipeline?: (reason: string) => void;
 }
+
+import { evaluateTriggers } from './triggerEngine';
+import { executeTriggerActions } from './executeTriggerActions';
+import { getCaseStatus, saveCaseStatus } from './casoStore';
+import { loadObiState, updateObiState } from './obiState';
 
 export async function orchestrate(event: IngestEvent): Promise<void> {
   const obiState = await loadObiState(event.id_caso);
@@ -81,10 +81,10 @@ export async function orchestrate(event: IngestEvent): Promise<void> {
     },
   };
 
-  const triggerResult: TriggerEvaluationResult = await evaluateTriggers(execContext);
+  const triggerResult = await evaluateTriggers(execContext);
 
   if (triggerResult.triggered && triggerResult.actions.length > 0) {
-    await executeTriggerActions(execContext, triggerResult.actions);
+    await executeTriggerActions(triggerResult.actions, execContext);
   }
 
   await saveCaseStatus(execContext.idCaso, {
