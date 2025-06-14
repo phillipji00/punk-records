@@ -1,55 +1,38 @@
+// lib/obiState.ts — memória persistente do Capitão Obi
 
-import fs from 'fs';
-import path from 'path';
-import type { SyndicateContext } from './runtimeOrchestrator';
+import { Pool } from 'pg';
 
-const OBI_STATE_PATH = path.join(__dirname, 'estado_do_obi.json');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
-export async function getCaseStatus(idCaso: string): Promise<SyndicateContext | null> {
-  if (!fs.existsSync(OBI_STATE_PATH)) return null;
-
-  const data = JSON.parse(fs.readFileSync(OBI_STATE_PATH, 'utf-8'));
-  const match = data.find((entry: any) => entry.id_caso === idCaso);
-
-  if (!match) return null;
-
-  return {
-    idRegistro: 'recuperado',
-    contexto: match.contexto.descricao,
-    autor: 'L',
-    etapa: match.etapa,
-    especialista: match.especialistas_ativos?.[0] || 'desconhecido',
-    idCaso: match.id_caso,
-    probabilidade: match.contexto.probabilidade,
-    timestamp: match.atualizado_em
-  };
+export interface ObiState {
+  id_caso: string;
+  sinalizacaoManual?: 'PAUSADO' | 'ARQUIVADO' | 'NENHUM';
+  ultimaEtapa?: string;
+  historico?: string[];
+  criado_em: string;
+  atualizado_em: string;
 }
 
-export async function saveCaseStatus(context: SyndicateContext): Promise<void> {
-  let data: any[] = [];
+export async function loadObiState(idCaso: string): Promise<ObiState | null> {
+  const { rows } = await pool.query<ObiState>(
+    `SELECT * FROM obi_state WHERE id_caso = $1 LIMIT 1`,
+    [idCaso]
+  );
+  return rows[0] ?? null;
+}
 
-  if (fs.existsSync(OBI_STATE_PATH)) {
-    data = JSON.parse(fs.readFileSync(OBI_STATE_PATH, 'utf-8'));
-  }
-
-  const existingIndex = data.findIndex(entry => entry.id_caso === context.idCaso);
-
-  const updated = {
-    id_caso: context.idCaso,
-    etapa: context.etapa,
-    especialistas_ativos: [context.especialista],
-    contexto: {
-      descricao: context.contexto,
-      probabilidade: context.probabilidade
-    },
-    atualizado_em: context.timestamp
-  };
-
-  if (existingIndex !== -1) {
-    data[existingIndex] = updated;
-  } else {
-    data.push(updated);
-  }
-
-  fs.writeFileSync(OBI_STATE_PATH, JSON.stringify(data, null, 2));
+export async function updateObiState(idCaso: string, patch: Partial<ObiState>): Promise<void> {
+  await pool.query(
+    `INSERT INTO obi_state (id_caso, sinalizacao_manual, ultima_etapa, atualizado_em)
+     VALUES ($1, $2, $3, NOW())
+     ON CONFLICT (id_caso)
+     DO UPDATE SET
+        sinalizacao_manual = COALESCE($2, obi_state.sinalizacao_manual),
+        ultima_etapa = COALESCE($3, obi_state.ultima_etapa),
+        atualizado_em = NOW()`,
+    [idCaso, patch.sinalizacaoManual ?? null, patch.ultimaEtapa ?? null]
+  );
 }
