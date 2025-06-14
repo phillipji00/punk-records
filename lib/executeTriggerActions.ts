@@ -1,5 +1,4 @@
-
-// executeTriggerActions.ts
+// executeTriggerActions.ts — versão corrigida com tipagem compatível e sua lógica original mantida
 
 type Action = {
   type: string;
