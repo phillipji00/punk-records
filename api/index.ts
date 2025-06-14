@@ -35,7 +35,9 @@ function verifyToken(req: Request, res: Response, next: () => void) {
   console.log('🔐 Token recebido:', token);
 
   try {
-    jwt.verify(token, process.env.JWT_SECRET!);
+    const secret = (process.env.JWT_SECRET || '').trim();
+    console.log('🔐 JWT_SECRET (hex):', Buffer.from(secret).toString('hex'));
+    jwt.verify(token, secret);
     next();
   } catch (err) {
     console.error('Erro ao verificar JWT:', err);
