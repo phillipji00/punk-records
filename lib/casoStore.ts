@@ -1,4 +1,4 @@
-// lib/casoStore.ts — acesso seguro ao PostgreSQL (Neon)
+// lib/casoStore.ts — acesso seguro ao PostgreSQL (Neon) com saveRegistro incluído
 
 import { Pool } from 'pg';
 
@@ -33,4 +33,21 @@ export async function saveCaseStatus(idCaso: string, status: CasoStatus): Promis
          VALUES ($1, $2, $3, $4, $5)`,
     [idCaso, etapa, especialista, probabilidade ?? null, timestamp]
   );
+}
+
+/**
+ * Salva um novo registro bruto (hipótese, evidência, etc.)
+ */
+export async function saveRegistro(
+  tipo_registro: string,
+  autor: string,
+  dados: Record<string, any>
+): Promise<number> {
+  const result = await pool.query(
+    `INSERT INTO registros (tipo_registro, autor, dados)
+     VALUES ($1, $2, $3)
+     RETURNING id`,
+    [tipo_registro, autor, dados]
+  );
+  return result.rows[0].id;
 }
