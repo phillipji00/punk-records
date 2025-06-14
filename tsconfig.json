@@ -1,64 +1,57 @@
 {
   "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020"],
     
-    "target": "ES2020",                          
-    "lib": ["ES2020"],                           
+    "module": "commonjs",
+    "rootDir": ".",
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "resolveJsonModule": true,
     
+    "allowJs": false,
+    "checkJs": false,
     
-    "module": "commonjs",                        
-    "rootDir": ".",                              
-    "moduleResolution": "node",                  
-    "baseUrl": ".",                              
-    "resolveJsonModule": true,                   
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "removeComments": true,
+    "importHelpers": false,
+    "downlevelIteration": true,
+    "preserveConstEnums": true,
     
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
     
-    "allowJs": false,                            
-    "checkJs": false,                            
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": true,
     
-    
-    "declaration": true,                         
-    "declarationMap": true,                      
-    "sourceMap": true,                           
-    "outDir": "./dist",                          
-    "removeComments": true,                      
-    "importHelpers": false,                      
-    "downlevelIteration": true,                  
-    "preserveConstEnums": true,                  
-    
-    
-    "isolatedModules": true,                     
-    "esModuleInterop": true,                     
-    "allowSyntheticDefaultImports": true,        
-    "forceConsistentCasingInFileNames": true,    
-    
-    
-    "strict": true,                              
-    "noImplicitAny": true,                       
-    "strictNullChecks": true,                    
-    "strictFunctionTypes": true,                 
-    "strictBindCallApply": true,                 
-    "strictPropertyInitialization": true,        
-    "noImplicitThis": true,                      
-    "alwaysStrict": true,                        
-    "noUnusedLocals": true,                      
-    "noUnusedParameters": true,                  
-    "noImplicitReturns": true,                   
-    "noFallthroughCasesInSwitch": true,         
-    "noUncheckedIndexedAccess": false,           
-    "noImplicitOverride": true,                  
-    
-    
-    "skipDefaultLibCheck": true,                 
-    "skipLibCheck": true                         
+    "skipDefaultLibCheck": true,
+    "skipLibCheck": true
   },
   "include": [
-    "api*.ts",
-    "lib*.ts"
+    "api/**/*.ts",
+    "lib/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "***.test.ts",
+    "**/*.test.ts",
     "coverage",
     "logs"
   ],
