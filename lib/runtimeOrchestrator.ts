@@ -47,7 +47,6 @@ export async function orchestrate(event: IngestEvent): Promise<void> {
     const context: SyndicateContext = {
   const validation = validateAgainstSchema("vault_record_schema", context);
   if (!validation.valid) throw new Error("❌ Contexto inválido: " + JSON.stringify(validation.errors));
-      idRegistro: event.id,
       contexto: event.dados.descricao || '',
       autor: event.autor,
       etapa: estadoAnterior?.etapa || event.etapa || ETAPAS_PIPELINE.INTAKE,
