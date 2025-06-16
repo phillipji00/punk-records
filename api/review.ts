@@ -3,20 +3,19 @@ import { reviewAnalysis, ReviewInput, ReviewResult } from '../src/reviewEngine';
 import { 
   ExecutionContext, 
   SpecialistResponse, 
-  isValidExecutionContext,
   SPECIALIST_TO_PERSONA 
 } from '../lib/types/common';
 
 /**
- * Schema de entrada esperado para o endpoint
+ * Schema de entrada esperado para o endpoint (FLEXÍVEL)
  */
 interface ReviewRequestBody {
   /** Nome do especialista que vai revisar */
   reviewer: string;
   /** Análise original feita por outro especialista */
   originalAnalysis: SpecialistResponse;
-  /** Contexto completo da execução */
-  context: ExecutionContext;
+  /** Contexto - pode ser simples ou completo */
+  context: any; // MUDANÇA: Aceitar qualquer formato
 }
 
 /**
@@ -54,7 +53,55 @@ interface ErrorResponse {
 }
 
 /**
- * Valida o corpo da requisição
+ * NOVA FUNÇÃO: Constrói ExecutionContext a partir de contexto simples
+ * (Inspirada na função createExecutionContext do obi.ts)
+ */
+function createExecutionContext(partialContext: any): ExecutionContext {
+  // Se já é um ExecutionContext completo, retorna como está
+  if (partialContext.executionId && partialContext.input && partialContext.state) {
+    return partialContext as ExecutionContext;
+  }
+  
+  // Caso contrário, constrói a partir dos campos simples
+  const executionContext: ExecutionContext = {
+    executionId: partialContext.executionId || `exec-review-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    startTime: partialContext.startTime ? new Date(partialContext.startTime) : new Date(),
+    input: {
+      content: partialContext.contexto || partialContext.content || '',
+      metadata: {
+        specialist: partialContext.especialista || partialContext.autor || 'unknown',
+        confidence: partialContext.probabilidade || partialContext.confidence || 0.75,
+        caseId: partialContext.idCaso || partialContext.caseId || 'unknown',
+        recordId: partialContext.idRegistro || partialContext.recordId,
+        stage: partialContext.etapa || partialContext.stage,
+        recordType: partialContext.tipo_registro || partialContext.recordType,
+        timestamp: partialContext.timestamp || new Date().toISOString(),
+        ...partialContext
+      }
+    },
+    state: {
+      phase: partialContext.etapa === 'validacao_cruzada' ? 'validation' : (partialContext.phase || 'analysis'),
+      activatedSpecialists: partialContext.activatedSpecialists || [partialContext.especialista || partialContext.autor].filter(Boolean),
+      partialResults: partialContext.partialResults || new Map(),
+      flags: {
+        debugMode: partialContext.debugMode || false,
+        ...partialContext.flags
+      }
+    },
+    config: {
+      enabledSpecialists: partialContext.enabledSpecialists || ['L', 'Senku', 'Norman', 'Isagi', 'Obi'],
+      confidenceThreshold: partialContext.confidenceThreshold || 0.6,
+      ...partialContext.config
+    },
+    actionHistory: partialContext.actionHistory || [],
+    effectLogs: partialContext.effectLogs || []
+  };
+  
+  return executionContext;
+}
+
+/**
+ * FUNÇÃO SIMPLIFICADA: Valida o corpo da requisição (mais flexível)
  */
 function validateRequestBody(body: any): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
@@ -69,23 +116,14 @@ function validateRequestBody(body: any): { isValid: boolean; errors: string[] } 
     }
   }
 
-  // Validação da originalAnalysis
+  // Validação básica da originalAnalysis
   if (!body.originalAnalysis) {
     errors.push('Campo "originalAnalysis" é obrigatório');
   } else {
-    // Verifica estrutura básica do SpecialistResponse
     const analysis = body.originalAnalysis;
     
     if (!analysis.specialist || typeof analysis.specialist !== 'string') {
       errors.push('originalAnalysis.specialist é obrigatório e deve ser string');
-    }
-    
-    if (!analysis.analysisId || typeof analysis.analysisId !== 'string') {
-      errors.push('originalAnalysis.analysisId é obrigatório e deve ser string');
-    }
-    
-    if (!analysis.timestamp) {
-      errors.push('originalAnalysis.timestamp é obrigatório');
     }
     
     if (!analysis.analysis) {
@@ -108,29 +146,16 @@ function validateRequestBody(body: any): { isValid: boolean; errors: string[] } 
     
     if (!analysis.metadata) {
       errors.push('originalAnalysis.metadata é obrigatório');
-    } else {
-      if (typeof analysis.metadata.processingTime !== 'number') {
-        errors.push('originalAnalysis.metadata.processingTime deve ser number');
-      }
-      
-      if (typeof analysis.metadata.overallConfidence !== 'number') {
-        errors.push('originalAnalysis.metadata.overallConfidence deve ser number');
-      }
-      
-      if (typeof analysis.metadata.isComplete !== 'boolean') {
-        errors.push('originalAnalysis.metadata.isComplete deve ser boolean');
-      }
     }
   }
 
-  // Validação do context
+  // Validação FLEXÍVEL do context
   if (!body.context) {
     errors.push('Campo "context" é obrigatório');
-  } else {
-    if (!isValidExecutionContext(body.context)) {
-      errors.push('Campo "context" não possui estrutura válida de ExecutionContext');
-    }
+  } else if (typeof body.context !== 'object') {
+    errors.push('Campo "context" deve ser um objeto');
   }
+  // MUDANÇA: Não validamos mais a estrutura específica - aceitamos qualquer objeto
 
   return {
     isValid: errors.length === 0,
@@ -180,7 +205,7 @@ function formatReviewResponse(
 }
 
 /**
- * Handler principal do endpoint de revisão
+ * Handler principal do endpoint de revisão (FLEXÍVEL)
  */
 export default async function handler(
   req: NextApiRequest,
@@ -214,7 +239,7 @@ export default async function handler(
       });
     }
 
-    // Validação rigorosa do input
+    // Validação FLEXÍVEL do input
     const validation = validateRequestBody(body);
     if (!validation.isValid) {
       return res.status(400).json({
@@ -224,13 +249,16 @@ export default async function handler(
     }
 
     // Extração dos dados validados
-    const { reviewer, originalAnalysis, context } = body as ReviewRequestBody;
+    const { reviewer, originalAnalysis, context: partialContext } = body as ReviewRequestBody;
+
+    // MUDANÇA: Criar ExecutionContext completo a partir do contexto parcial
+    const executionContext = createExecutionContext(partialContext);
 
     // Preparação do input para a função de revisão
     const reviewInput: ReviewInput = {
       reviewer,
       originalAnalysis,
-      context
+      context: executionContext // Agora sempre passamos ExecutionContext completo
     };
 
     // Execução da lógica de revisão
@@ -249,7 +277,7 @@ export default async function handler(
     const response = formatReviewResponse(reviewResult, reviewer, originalAnalysis);
 
     // Log da operação (para auditoria)
-    console.log(`[REVIEW] ${reviewer} revisou análise de ${originalAnalysis.specialist}: ${reviewResult.status} (score: ${(reviewResult.qualityScore * 100).toFixed(0)}%)`);
+    console.log(`[REVIEW FLEXÍVEL] ${reviewer} revisou análise de ${originalAnalysis.specialist}: ${reviewResult.status} (score: ${(reviewResult.qualityScore * 100).toFixed(0)}%)`);
 
     // Retorno da resposta formatada
     return res.status(200).json(response);
