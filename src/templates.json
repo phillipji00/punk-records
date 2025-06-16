@@ -1,0 +1,39 @@
+{
+  "estrategista_chefe": {
+    "analise_inicial": "Análise estratégica inicial: {{hipotese}} com probabilidade de {{probabilidade}}%. Evidências primárias: {{evidencia}}. Contexto: {{contextoNarrativo}}",
+    "deteccao_contradicao": "Contradição detectada: {{contradicao}}. Análise lógica indica inconsistências entre {{evidencias_conflitantes}}. Probabilidade revisada: {{probabilidade}}%",
+    "quantificacao_probabilistica": "Quantificação probabilística: {{probabilidade}}% de certeza. Fatores contributivos: {{fatores}}. Análise Bayesiana sugere {{conclusao}}",
+    "sintese_estrategica": "Síntese estratégica: {{sintese}}. Convergência de evidências aponta para {{conclusao}} com {{confianca}}% de confiança"
+  },
+  "analista_forense": {
+    "analise_inicial": "10 bilhões por cento! Análise forense de {{evidencia}} revela {{descoberta}}. Metodologia científica aplicada: {{metodo}}",
+    "deteccao_contradicao": "Inconsistência forense detectada: {{contradicao}}. Análise temporal indica impossibilidade física em {{timeline}}",
+    "sintese_final": "Conclusão forense: {{sintese}}. Evidências científicas confirmam {{hipotese}} com margem de erro de {{margem_erro}}%",
+    "analise_historica": "Análise histórica: período {{periodo}} apresenta {{padroes}}. Correlação com casos similares: {{correlacao}}"
+  },
+  "analista_comportamental": {
+    "analise_inicial": "Análise comportamental de {{sujeito}} indica {{padroes}}. Baseline psicológico: {{baseline}}. Desvios significativos: {{desvios}}",
+    "perfil_psicologico": "Perfil psicológico: {{perfil}}. Motivações primárias: {{motivacoes}}. Vulnerabilidades identificadas: {{vulnerabilidades}}",
+    "deteccao_mentira": "Análise de veracidade: {{analise}}. Microexpressões detectadas durante {{momento}} indicam {{emocao_oculta}}. Probabilidade de deception: {{prob_mentira}}%",
+    "analise_genealogica": "Padrões familiares identificados: {{padroes_familiares}}. Traumas geracionais: {{traumas}}. Impacto no comportamento atual: {{impacto}}"
+  },
+  "analista_espacial": {
+    "analise_inicial": "Análise tática de {{situacao}} revela oportunidades de otimização em {{areas}}. Eficiência atual: {{eficiencia_atual}}%, potencial: {{eficiencia_potencial}}%",
+    "otimizacao": "Estratégia de otimização: {{estrategia}}. Recursos necessários: {{recursos}}. ROI esperado: {{roi}}",
+    "mapeamento_espacial": "Mapeamento espacial completo. Zonas controladas: {{zonas_controladas}}. Pontos vulneráveis: {{vulnerabilidades}}",
+    "analise_fluxo": "Análise de fluxo: padrões de movimento indicam {{padroes}}. Gargalos identificados: {{gargalos}}. Recomendações táticas: {{recomendacoes}}"
+  },
+  "orquestrador_missao": {
+    "analise_inicial": "Fire Force! Coordenação inicial: {{missao}}. Especialistas necessários: {{especialistas}}. Prioridade: {{prioridade}}",
+    "sintese_final": "Síntese da equipe: {{sintese}}. Consenso alcançado: {{consenso}}%. Fire Force cuida de Fire Force - missão {{status}}",
+    "coordenacao_crise": "Situação crítica! {{crise}}. Protocolos de emergência ativados. Ações imediatas: {{acoes}}. Tempo estimado: {{tempo}}",
+    "relatorio_equipe": "Performance da equipe: {{performance}}/10. Sinergia: {{sinergia}}%. Áreas de melhoria: {{melhorias}}"
+  },
+  "templates_perguntas": {
+    "L_estrategica": "Considerando a análise atual com {{percentual}}% de certeza, qual {{elemento}} específico poderia alterar significativamente nossa hipótese de {{hipotese_alternativa}}?",
+    "Senku_cientifica": "10 bilhões por cento interessante! Sobre {{evidencia}}, você pode detalhar {{aspecto_tecnico}}? Especificamente o período/método/composição?",
+    "Norman_comportamental": "Para entender melhor {{sujeito}}, precisamos explorar {{aspecto_psicologico}}. Como você descreveria {{comportamento_especifico}}?",
+    "Isagi_tatica": "Para otimizar {{processo}}, preciso mapear {{elemento_espacial}}. Qual a configuração atual de {{recurso}}?",
+    "Obi_coordenacao": "Fire Force! Para coordenar melhor a equipe, preciso entender {{situacao}}. Qual a prioridade entre {{opcoes}}?"
+  }
+}

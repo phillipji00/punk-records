@@ -1,0 +1,241 @@
+{
+  "actions": [
+    {
+      "name": "Refine",
+      "description": "Gera perguntas de refinamento para an\u00e1lise especializada.",
+      "endpoint": {
+        "url": "https://vault-beta-jet.vercel.app/api/refine",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "bodyFormat": "json"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "specialist": {
+            "type": "string"
+          },
+          "context": {
+            "type": "string"
+          },
+          "hypothesis": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "missingElement": {
+            "type": "string"
+          },
+          "userCommand": {
+            "type": "string"
+          },
+          "currentConfidence": {
+            "type": "number"
+          },
+          "useFullRefinement": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "specialist",
+          "context"
+        ]
+      }
+    },
+    {
+      "name": "Analisar",
+      "description": "Solicita uma an\u00e1lise especializada com base em um contexto de execu\u00e7\u00e3o.",
+      "endpoint": {
+        "url": "https://vault-beta-jet.vercel.app/api/analisar",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "bodyFormat": "json"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "specialist": {
+            "type": "string"
+          },
+          "context": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "specialist",
+          "context"
+        ]
+      }
+    },
+    {
+      "name": "Review",
+      "description": "Executa uma revis\u00e3o cruzada de uma an\u00e1lise realizada por outro especialista.",
+      "endpoint": {
+        "url": "https://vault-beta-jet.vercel.app/api/review",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "bodyFormat": "json"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "reviewer": {
+            "type": "string"
+          },
+          "originalAnalysis": {
+            "type": "object"
+          },
+          "context": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "reviewer",
+          "originalAnalysis",
+          "context"
+        ]
+      }
+    },
+    {
+      "name": "Avan\u00e7ar Pipeline",
+      "description": "Executa a transi\u00e7\u00e3o de uma etapa do pipeline para a pr\u00f3xima.",
+      "endpoint": {
+        "url": "https://vault-beta-jet.vercel.app/api/pipeline",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "bodyFormat": "json"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "currentStage": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "advance",
+              "info",
+              "metrics"
+            ]
+          },
+          "context": {
+            "type": "object",
+            "properties": {
+              "completedTasks": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "investigationType": {
+                "type": "string",
+                "enum": [
+                  "rapid",
+                  "standard",
+                  "comprehensive"
+                ]
+              },
+              "stageConfidence": {
+                "type": "object"
+              },
+              "teamConsensus": {
+                "type": "number"
+              },
+              "contextCompleteness": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "completedTasks",
+              "investigationType",
+              "stageConfidence"
+            ]
+          }
+        },
+        "required": [
+          "currentStage",
+          "context"
+        ]
+      }
+    },
+    {
+      "name": "Retry",
+      "description": "Avalia como recuperar uma falha ocorrida no pipeline investigativo.",
+      "endpoint": {
+        "url": "https://vault-beta-jet.vercel.app/api/retry",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "bodyFormat": "json"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "etapaAtual": {
+            "type": "string"
+          },
+          "tipoErro": {
+            "type": "string"
+          },
+          "especialista": {
+            "type": "string"
+          },
+          "tentativaAtual": {
+            "type": "number"
+          },
+          "confiancaAtual": {
+            "type": "number"
+          },
+          "tentativasGlobais": {
+            "type": "number"
+          },
+          "contextoErro": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "etapaAtual",
+          "tipoErro",
+          "tentativaAtual"
+        ]
+      }
+    },
+    {
+      "name": "Obi",
+      "description": "Consulta o Capit\u00e3o Obi sobre a melhor decis\u00e3o narrativa com base no contexto.",
+      "endpoint": {
+        "url": "https://vault-beta-jet.vercel.app/api/obi",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "bodyFormat": "json"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "includeDiagnostics": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "context"
+        ]
+      }
+    }
+  ]
+}

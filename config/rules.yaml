@@ -1,0 +1,125 @@
+version: 1.0
+rules:
+
+  - id: ingest_confidence_above_80
+    name: "Trigger de ingest com confiança alta"
+    description: "Dispara log se o campo 'probabilidade' for >= 80 durante ingest"
+    trigger:
+      event: ingest
+      conditions:
+        - field: probabilidade
+          operator: ">="
+          value: 80
+    actions:
+      - type: log
+        message: "Trigger de ingest ativado: probabilidade alta detectada."
+
+
+  - id: hypothesis_confidence_above_90
+    name: "Hipótese com confiança muito alta (L)"
+    description: "Evita certeza cega — ativa devil_advocate e avança para debate se confiança >= 90%"
+    trigger:
+      event: hypothesis_created
+      conditions:
+        - field: confidence
+          operator: ">="
+          value: 0.9
+        - field: author
+          operator: "=="
+          value: "L Lawliet"
+    actions:
+      - type: activate_specialist
+        target: "devil_advocate"
+      - type: advance_pipeline
+        to_stage: "debate"
+      - type: log
+        message: "Hmm... o L está confiante demais. Melhor trazermos alguém para questionar essa hipótese antes de seguirmos."
+
+  - id: adjust_confidence_on_overconfidence_without_evidence
+    name: "Ajuste de confiança por overconfidence sem evidência"
+    description: "Reduz confiança de hipóteses de L se número de evidências < 2"
+    trigger:
+      event: hypothesis_created
+      conditions:
+        - field: author
+          operator: "=="
+          value: "L Lawliet"
+        - field: confidence
+          operator: ">="
+          value: 0.85
+        - field: evidence_count
+          operator: "<"
+          value: 2
+    actions:
+      - type: modify_score
+        field: confidence
+        adjustment: -0.1
+      - type: log
+        message: "Não temos provas suficientes para confiar tanto assim nessa hipótese. Vamos ajustar nossas expectativas."
+
+  - id: low_quality_score_retry
+    name: "Retry automático se qualidade for baixa"
+    description: "Se uma análise validada tiver qualidade abaixo de 60, iniciar retry protocol"
+    trigger:
+      event: analysis_validated
+      conditions:
+        - field: quality_score
+          operator: "<"
+          value: 60
+    actions:
+      - type: activate_protocol
+        protocol: "retry"
+      - type: log
+        message: "Essa análise ficou abaixo do nosso padrão. Vamos refazer com mais cuidado."
+
+  - id: task_type_behavioral_requires_dual_validation
+    name: "Tarefas comportamentais exigem dupla validação"
+    description: "Se tarefa for de perfil psicológico, forçar dupla validação entre Norman e L"
+    trigger:
+      event: task_assigned
+      conditions:
+        - field: task_type
+          operator: "=="
+          value: "behavioral_profile"
+    actions:
+      - type: activate_specialist
+        target: "L Lawliet"
+      - type: advance_pipeline
+        to_stage: "cross_validation"
+      - type: log
+        message: "Se o assunto é comportamento humano, quero pelo menos dois pares de olhos atentos nisso."
+
+  - id: contradiction_high_confidence_block
+    name: "Pausar pipeline em contradição crítica"
+    description: "Se L e Norman discordam com alta confiança, pausar pipeline e iniciar mediação"
+    trigger:
+      event: contradiction_detected
+      conditions:
+        - field: participants
+          operator: "includes_both"
+          value: ["L Lawliet", "Norman"]
+        - field: confidence_average
+          operator: ">="
+          value: 0.8
+    actions:
+      - type: halt_pipeline
+        reason: "Contradição crítica entre especialistas com alta confiança"
+      - type: activate_protocol
+        protocol: "mediation"
+      - type: log
+        message: "Temos dois gênios em lados opostos, e ambos confiantes. Hora de uma conversa franca entre eles antes de seguirmos."
+
+  - id: multi_specialist_analysis_triggers_validation
+    name: "Validação automática quando há múltiplos especialistas"
+    description: "Se 2 ou mais especialistas participam de uma análise, forçar validação cruzada"
+    trigger:
+      event: analysis_completed
+      conditions:
+        - field: specialists_involved
+          operator: ">="
+          value: 2
+    actions:
+      - type: advance_pipeline
+        to_stage: "cross_validation"
+      - type: log
+        message: "Quando mais de um especialista entra em cena, a validação cruzada não é opcional. Vamos conferir tudo com atenção."

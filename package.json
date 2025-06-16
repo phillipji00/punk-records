@@ -1,0 +1,61 @@
+{
+  "name": "@syndicate/core",
+  "version": "3.1.0",
+  "description": "Syndicate Investigation System - Core Runtime and Modules",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts lib/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts lib/**/*.ts --fix",
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean",
+    "dev": "ts-node-dev --respawn --transpile-only lib/runtimeOrchestrator.ts",
+    "fix-imports": "node fix-imports.js",
+    "test-imports": "node test-fix-imports.js",
+    "typecheck": "tsc --noEmit",
+    "build:dev": "tsc -p tsconfig.dev.json",
+    "check": "tsc --noEmit",
+    "check:dev": "tsc --noEmit -p tsconfig.dev.json"
+  },
+  "keywords": [
+    "syndicate",
+    "investigation",
+    "narrative",
+    "ai",
+    "typescript"
+  ],
+  "author": "Syndicate Team",
+  "license": "MIT",
+  "dependencies": {
+    "ajv": "^8.12.0",
+    "ajv-formats": "^3.0.1",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.30",
+    "@typescript-eslint/eslint-plugin": "^7.3.1",
+    "@typescript-eslint/parser": "^7.3.1",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "rimraf": "^5.0.5",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
+}
