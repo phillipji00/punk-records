@@ -573,6 +573,22 @@ export interface ObiCommand {
   timestamp: Date;
 }
 
+export interface ObiSystemDiagnosis {
+  statusGeral: 'operacional' | 'atencao' | 'critico';
+  especialistasRecomendados: string[];
+  proximasAcoes: string[];
+  alertas: string[];
+  confiancaSistema: number;
+}
+
+export interface StageTransitionResult {
+  nextStage: string;
+  completedTasks: string[];
+  stageStatus: 'completed' | 'failed' | 'needs_refinement';
+  errors?: string[];
+  requiresQARefinement?: boolean;
+  validationRequired?: boolean;
+}
 /**
  * Análise gerada por um especialista
  */

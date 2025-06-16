@@ -267,7 +267,7 @@ function generateRequestId(): string {
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: API_CONFIG.MAX_PAYLOAD_SIZE
+      sizeLimit: '1mb'  // ← MUDOU AQUI
     },
     responseLimit: false,
     externalResolver: true
