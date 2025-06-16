@@ -1,0 +1,185 @@
+{
+  "info": {
+    "name": "Syndicate v3.2 API Collection",
+    "_postman_id": "syndicate-v3.2-collection",
+    "description": "Coleção de testes para todas as rotas da API SYNDICATE v3.2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://vault-beta-jet.vercel.app",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Refine",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/refine",
+          "host": ["{{base_url}}"],
+          "path": ["api", "refine"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"specialist\": \"Senku\",\n  \"context\": \"Queremos entender a motivação do personagem ao fugir do local.\",\n  \"currentConfidence\": 64\n}"
+        }
+      }
+    },
+    {
+      "name": "Analisar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/analisar",
+          "host": ["{{base_url}}"],
+          "path": ["api", "analisar"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"specialist\": \"Norman\",\n  \"context\": {\n    \"contexto\": \"O suspeito revelou sinais de nervosismo ao ser confrontado.\",\n    \"autor\": \"Equipe Delta\",\n    \"etapa\": \"analise_comportamental\",\n    \"especialista\": \"Norman\",\n    \"idCaso\": \"caso_sombra\",\n    \"timestamp\": \"2025-06-14T16:00:00Z\",\n    \"tipo_registro\": \"perfil_personagem\",\n    \"probabilidade\": 0.76,\n    \"idRegistro\": \"reg123\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Review",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/review",
+          "host": ["{{base_url}}"],
+          "path": ["api", "review"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reviewer\": \"L\",\n  \"originalAnalysis\": {\n    \"specialist\": \"Senku\",\n    \"analysisId\": \"analysis-001\",\n    \"timestamp\": \"2025-06-14T15:45:00Z\",\n    \"analysis\": {\n      \"summary\": \"Hipótese sobre sabotagem no laboratório.\",\n      \"keyPoints\": [\n        \"Fuga após alarme\",\n        \"Acesso negado em logs\"\n      ],\n      \"insights\": [\n        {\n          \"category\": \"comportamento\",\n          \"description\": \"Padrão de evasão detectado\",\n          \"confidence\": 0.87\n        }\n      ]\n    },\n    \"metadata\": {\n      \"processingTime\": 123,\n      \"overallConfidence\": 0.87,\n      \"isComplete\": true\n    }\n  },\n  \"context\": {\n    \"idRegistro\": \"reg456\",\n    \"contexto\": \"A hipótese envolve comportamento evasivo após atividade suspeita.\",\n    \"autor\": \"Sistema\",\n    \"etapa\": \"validacao_cruzada\",\n    \"especialista\": \"L\",\n    \"idCaso\": \"caso_sombra\",\n    \"timestamp\": \"2025-06-14T16:10:00Z\",\n    \"tipo_registro\": \"cross_validation_result\",\n    \"probabilidade\": 0.87\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Pipeline",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/pipeline",
+          "host": ["{{base_url}}"],
+          "path": ["api", "pipeline"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"currentStage\": \"coleta_evidencias\",\n  \"context\": {\n    \"completedTasks\": [\n      \"verificar_logs\",\n      \"coletar_imagens\"\n    ],\n    \"investigationType\": \"standard\",\n    \"stageConfidence\": {\n      \"media\": 0.81\n    },\n    \"teamConsensus\": 0.75,\n    \"contextCompleteness\": 0.9\n  },\n  \"action\": \"advance\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Retry",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/retry",
+          "host": ["{{base_url}}"],
+          "path": ["api", "retry"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"etapaAtual\": \"analise_dados\",\n  \"tipoErro\": \"timeout_analise\",\n  \"especialista\": \"Senku\",\n  \"tentativaAtual\": 2,\n  \"confiancaAtual\": 64,\n  \"tentativasGlobais\": 4,\n  \"contextoErro\": {\n    \"detalhes\": \"resposta nula\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Obi",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/obi",
+          "host": ["{{base_url}}"],
+          "path": ["api", "obi"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"context\": {\n    \"idRegistro\": \"reg789\",\n    \"contexto\": \"Há um padrão incomum nos relatos de fuga.\",\n    \"autor\": \"L\",\n    \"etapa\": \"analise_padrao\",\n    \"especialista\": \"Obi\",\n    \"idCaso\": \"caso_fuga\",\n    \"timestamp\": \"2025-06-14T16:30:00Z\",\n    \"tipo_registro\": \"entrada_timeline\",\n    \"probabilidade\": 0.85\n  },\n  \"includeDiagnostics\": true\n}"
+        }
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Define timestamp atual para requests dinâmicos",
+          "pm.globals.set('current_timestamp', new Date().toISOString());",
+          "",
+          "// Log da requisição para debugging",
+          "console.log('Executando requisição para:', pm.request.url.toString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Testes básicos para todas as requests",
+          "pm.test('Status code é 200 ou 201', function () {",
+          "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+          "});",
+          "",
+          "pm.test('Response tem content-type JSON', function () {",
+          "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "});",
+          "",
+          "pm.test('Response não está vazio', function () {",
+          "    pm.expect(pm.response.text()).to.not.be.empty;",
+          "});",
+          "",
+          "pm.test('Response é JSON válido', function () {",
+          "    pm.expect(() => pm.response.json()).to.not.throw();",
+          "});",
+          "",
+          "// Log da resposta para debugging",
+          "console.log('Response:', pm.response.json());"
+        ]
+      }
+    }
+  ]
+}

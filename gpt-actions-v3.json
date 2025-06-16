@@ -2,7 +2,7 @@
   "actions": [
     {
       "name": "Refine",
-      "description": "Gera perguntas de refinamento para an\u00e1lise especializada.",
+      "description": "Gera perguntas de refinamento para análise especializada quando a confiança está baixa ou contexto incompleto.",
       "endpoint": {
         "url": "https://vault-beta-jet.vercel.app/api/refine",
         "method": "POST",
@@ -15,39 +15,43 @@
         "type": "object",
         "properties": {
           "specialist": {
-            "type": "string"
+            "type": "string",
+            "enum": ["L", "Senku", "Norman", "Isagi", "Obi"],
+            "description": "Especialista que vai refinar a análise"
           },
           "context": {
-            "type": "string"
+            "type": "string",
+            "description": "Contexto da investigação que precisa ser refinado"
           },
           "hypothesis": {
-            "type": "string"
+            "type": "string",
+            "description": "Hipótese atual (opcional)"
           },
           "evidence": {
-            "type": "string"
+            "type": "string", 
+            "description": "Evidências disponíveis (opcional)"
           },
           "missingElement": {
-            "type": "string"
-          },
-          "userCommand": {
-            "type": "string"
+            "type": "string",
+            "description": "Elemento específico que está faltando (opcional)"
           },
           "currentConfidence": {
-            "type": "number"
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Nível de confiança atual (0-100)"
           },
           "useFullRefinement": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Se deve usar refinamento completo ou só gerar perguntas"
           }
         },
-        "required": [
-          "specialist",
-          "context"
-        ]
+        "required": ["specialist", "context"]
       }
     },
     {
       "name": "Analisar",
-      "description": "Solicita uma an\u00e1lise especializada com base em um contexto de execu\u00e7\u00e3o.",
+      "description": "Solicita análise especializada. Use quando precisar que um especialista específico analise evidências ou situações.",
       "endpoint": {
         "url": "https://vault-beta-jet.vercel.app/api/analisar",
         "method": "POST",
@@ -60,21 +64,63 @@
         "type": "object",
         "properties": {
           "specialist": {
-            "type": "string"
+            "type": "string",
+            "enum": ["L", "Senku", "Norman", "Isagi", "Obi"],
+            "description": "Nome do especialista que fará a análise"
           },
           "context": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "contexto": {
+                "type": "string",
+                "description": "Descrição da situação a ser analisada"
+              },
+              "autor": {
+                "type": "string",
+                "description": "Quem está solicitando a análise"
+              },
+              "etapa": {
+                "type": "string",
+                "description": "Etapa atual do pipeline"
+              },
+              "especialista": {
+                "type": "string",
+                "description": "Especialista responsável (mesmo que o campo specialist acima)"
+              },
+              "idCaso": {
+                "type": "string",
+                "description": "Identificador único do caso"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timestamp ISO 8601"
+              },
+              "tipo_registro": {
+                "type": "string",
+                "enum": ["hipotese", "evidencia", "perfil_personagem", "entrada_timeline", "registro_misc"],
+                "description": "Tipo do registro sendo analisado"
+              },
+              "probabilidade": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Probabilidade/confiança inicial (0.0 a 1.0)"
+              },
+              "idRegistro": {
+                "type": "string",
+                "description": "ID único do registro"
+              }
+            },
+            "required": ["contexto", "autor", "etapa", "especialista", "idCaso", "timestamp", "idRegistro"]
           }
         },
-        "required": [
-          "specialist",
-          "context"
-        ]
+        "required": ["specialist", "context"]
       }
     },
     {
       "name": "Review",
-      "description": "Executa uma revis\u00e3o cruzada de uma an\u00e1lise realizada por outro especialista.",
+      "description": "Executa validação cruzada de uma análise. Use quando uma análise precisa ser revisada por outro especialista.",
       "endpoint": {
         "url": "https://vault-beta-jet.vercel.app/api/review",
         "method": "POST",
@@ -87,25 +133,174 @@
         "type": "object",
         "properties": {
           "reviewer": {
-            "type": "string"
+            "type": "string",
+            "enum": ["L", "Norman", "Senku", "Isagi", "Obi"],
+            "description": "Especialista que fará a revisão"
           },
           "originalAnalysis": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "specialist": {
+                "type": "string",
+                "description": "Especialista que fez a análise original"
+              },
+              "analysisId": {
+                "type": "string",
+                "description": "ID único da análise"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Quando a análise foi feita"
+              },
+              "analysis": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "type": "string",
+                    "description": "Resumo da análise"
+                  },
+                  "keyPoints": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Pontos-chave identificados"
+                  },
+                  "insights": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "category": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "confidence": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "description": "Insights descobertos"
+                  }
+                },
+                "required": ["summary", "keyPoints", "insights"]
+              },
+              "metadata": {
+                "type": "object",
+                "properties": {
+                  "processingTime": {
+                    "type": "number",
+                    "description": "Tempo de processamento em ms"
+                  },
+                  "overallConfidence": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Confiança geral (0.0 a 1.0)"
+                  },
+                  "isComplete": {
+                    "type": "boolean",
+                    "description": "Se a análise está completa"
+                  }
+                },
+                "required": ["processingTime", "overallConfidence", "isComplete"]
+              }
+            },
+            "required": ["specialist", "analysisId", "timestamp", "analysis", "metadata"]
           },
           "context": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "executionId": {
+                "type": "string",
+                "description": "ID da execução"
+              },
+              "startTime": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "input": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "description": "Conteúdo sendo analisado"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "properties": {
+                      "specialist": {
+                        "type": "string"
+                      },
+                      "confidence": {
+                        "type": "number"
+                      },
+                      "caseId": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "state": {
+                "type": "object",
+                "properties": {
+                  "phase": {
+                    "type": "string",
+                    "description": "Fase atual (ex: validation)"
+                  },
+                  "activatedSpecialists": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "partialResults": {
+                    "type": "object"
+                  },
+                  "flags": {
+                    "type": "object",
+                    "properties": {
+                      "debugMode": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              },
+              "config": {
+                "type": "object",
+                "properties": {
+                  "enabledSpecialists": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "confidenceThreshold": {
+                    "type": "number"
+                  }
+                }
+              },
+              "actionHistory": {
+                "type": "array"
+              },
+              "effectLogs": {
+                "type": "array"
+              }
+            },
+            "required": ["executionId", "input", "state", "config", "actionHistory", "effectLogs"]
           }
         },
-        "required": [
-          "reviewer",
-          "originalAnalysis",
-          "context"
-        ]
+        "required": ["reviewer", "originalAnalysis", "context"]
       }
     },
     {
-      "name": "Avan\u00e7ar Pipeline",
-      "description": "Executa a transi\u00e7\u00e3o de uma etapa do pipeline para a pr\u00f3xima.",
+      "name": "AvançarPipeline",
+      "description": "Controla a progressão do pipeline investigativo. Use para avançar etapas, obter info ou métricas.",
       "endpoint": {
         "url": "https://vault-beta-jet.vercel.app/api/pipeline",
         "method": "POST",
@@ -118,15 +313,24 @@
         "type": "object",
         "properties": {
           "currentStage": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "intake_analysis",
+              "task_delegation", 
+              "collaborative_review",
+              "synthesis",
+              "hypothesis_formation",
+              "review",
+              "final_assessment",
+              "archival"
+            ],
+            "description": "Etapa atual do pipeline"
           },
           "action": {
             "type": "string",
-            "enum": [
-              "advance",
-              "info",
-              "metrics"
-            ]
+            "enum": ["advance", "info", "metrics"],
+            "default": "advance",
+            "description": "Ação a executar: advance=avançar, info=obter info da etapa, metrics=obter métricas"
           },
           "context": {
             "type": "object",
@@ -135,42 +339,40 @@
                 "type": "array",
                 "items": {
                   "type": "string"
-                }
+                },
+                "description": "Lista de tarefas já completadas"
               },
               "investigationType": {
                 "type": "string",
-                "enum": [
-                  "rapid",
-                  "standard",
-                  "comprehensive"
-                ]
+                "enum": ["rapid", "standard", "comprehensive"],
+                "description": "Tipo de investigação sendo conduzida"
               },
               "stageConfidence": {
-                "type": "object"
+                "type": "object",
+                "description": "Scores de confiança por categoria (ex: {media: 0.85})"
               },
               "teamConsensus": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Nível de consenso da equipe (0.0 a 1.0)"
               },
               "contextCompleteness": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Completude do contexto (0.0 a 1.0)"
               }
             },
-            "required": [
-              "completedTasks",
-              "investigationType",
-              "stageConfidence"
-            ]
+            "required": ["completedTasks", "investigationType", "stageConfidence"]
           }
         },
-        "required": [
-          "currentStage",
-          "context"
-        ]
+        "required": ["currentStage", "context"]
       }
     },
     {
       "name": "Retry",
-      "description": "Avalia como recuperar uma falha ocorrida no pipeline investigativo.",
+      "description": "Avalia estratégias de recuperação quando algo falha no pipeline. Use quando análises falham ou têm baixa confiança.",
       "endpoint": {
         "url": "https://vault-beta-jet.vercel.app/api/retry",
         "method": "POST",
@@ -183,37 +385,60 @@
         "type": "object",
         "properties": {
           "etapaAtual": {
-            "type": "string"
+            "type": "string",
+            "description": "Etapa onde ocorreu a falha"
           },
           "tipoErro": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "timeout_analise",
+              "baixa_confianca", 
+              "dados_inconsistentes",
+              "especialista_indisponivel",
+              "validacao_falhada",
+              "recurso_limitado",
+              "erro_critico"
+            ],
+            "description": "Tipo específico do erro ocorrido"
           },
           "especialista": {
-            "type": "string"
+            "type": "string",
+            "enum": ["L", "Senku", "Norman", "Isagi", "Obi"],
+            "description": "Especialista envolvido na falha (opcional)"
           },
           "tentativaAtual": {
-            "type": "number"
+            "type": "integer",
+            "minimum": 1,
+            "description": "Número da tentativa atual"
           },
           "confiancaAtual": {
-            "type": "number"
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Nível de confiança atual (0-100, opcional)"
           },
           "tentativasGlobais": {
-            "type": "number"
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total de tentativas já feitas globalmente (opcional)"
           },
           "contextoErro": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "detalhes": {
+                "type": "string",
+                "description": "Detalhes específicos do erro"
+              }
+            },
+            "description": "Contexto adicional sobre o erro (opcional)"
           }
         },
-        "required": [
-          "etapaAtual",
-          "tipoErro",
-          "tentativaAtual"
-        ]
+        "required": ["etapaAtual", "tipoErro", "tentativaAtual"]
       }
     },
     {
       "name": "Obi",
-      "description": "Consulta o Capit\u00e3o Obi sobre a melhor decis\u00e3o narrativa com base no contexto.",
+      "description": "Consulta o Capitão Obi para coordenação estratégica e decisões de liderança. Use quando precisar de direcionamento sobre o que fazer.",
       "endpoint": {
         "url": "https://vault-beta-jet.vercel.app/api/obi",
         "method": "POST",
@@ -226,15 +451,59 @@
         "type": "object",
         "properties": {
           "context": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "idRegistro": {
+                "type": "string",
+                "description": "ID único do registro/situação"
+              },
+              "contexto": {
+                "type": "string",
+                "description": "Descrição da situação que precisa de coordenação"
+              },
+              "autor": {
+                "type": "string",
+                "description": "Quem está solicitando orientação"
+              },
+              "etapa": {
+                "type": "string",
+                "description": "Etapa atual do pipeline"
+              },
+              "especialista": {
+                "type": "string",
+                "default": "Obi",
+                "description": "Especialista (geralmente Obi)"
+              },
+              "idCaso": {
+                "type": "string",
+                "description": "ID do caso sendo investigado"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timestamp da solicitação"
+              },
+              "tipo_registro": {
+                "type": "string",
+                "enum": ["hipotese", "evidencia", "perfil_personagem", "entrada_timeline", "registro_misc"],
+                "description": "Tipo do registro"
+              },
+              "probabilidade": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Probabilidade/confiança atual (0.0 a 1.0)"
+              }
+            },
+            "required": ["idRegistro", "contexto", "autor", "etapa", "idCaso", "timestamp"]
           },
           "includeDiagnostics": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": false,
+            "description": "Se deve incluir diagnóstico completo do sistema"
           }
         },
-        "required": [
-          "context"
-        ]
+        "required": ["context"]
       }
     }
   ]

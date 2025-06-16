@@ -1,10 +1,11 @@
-// src/api/pipeline.ts - Syndicate v3.2 Pipeline API Endpoint
+// src/api/pipeline.ts - Syndicate v3.2 Pipeline API Endpoint (CORRIGIDA)
 // Endpoint para transição entre etapas do pipeline investigativo
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { advanceStage, getStageInfo, getPipelineMetrics } from '../src/pipelineEngine';
 import { StageTransitionResult } from '../lib/types/common';
 type ExecutionContext = Parameters<typeof advanceStage>[1];
+
 // Tipos de resposta da API
 interface PipelineResponse {
   result?: StageTransitionResult;
@@ -13,12 +14,12 @@ interface PipelineResponse {
   error?: string;
 }
 
-// Validação do contexto de execução
-function validateExecutionContext(context: any): { valid: boolean; errors: string[] } {
+// Validação do contexto de execução (CORRIGIDA)
+function validateExecutionContext(context: any, currentStage: string): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
-  // Validações obrigatórias
-  if (!context.currentStage || typeof context.currentStage !== 'string') {
+  // CORREÇÃO: currentStage vem do parâmetro, não do context
+  if (!currentStage || typeof currentStage !== 'string') {
     errors.push('currentStage é obrigatório e deve ser uma string');
   }
 
@@ -71,17 +72,17 @@ export default async function handler(
       });
     }
 
-    // Validação do contexto
-    const validation = validateExecutionContext(context);
+    // Validação do contexto (CORRIGIDA - passando currentStage como parâmetro)
+    const validation = validateExecutionContext(context, currentStage);
     if (!validation.valid) {
       return res.status(400).json({
         error: `Contexto inválido: ${validation.errors.join('; ')}`
       });
     }
 
-    // Garantir estrutura mínima do contexto
+    // Garantir estrutura mínima do contexto (CORRIGIDA - incluindo currentStage)
     const executionContext: ExecutionContext = {
-      currentStage,
+      currentStage, // CORREÇÃO: Adicionar currentStage ao executionContext
       evidence: context.evidence || {},
       specialistAnalyses: context.specialistAnalyses || {},
       validationResults: context.validationResults || {},
