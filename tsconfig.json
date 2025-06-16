@@ -13,9 +13,9 @@
     "moduleResolution": "node",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
       "@/lib/*": ["lib/*"],
-      "@/src/*": ["src/*"]
+      "@/src/*": ["src/*"],
+      "@/types/*": ["types/*"]
     },
     "declaration": true,
     "declarationMap": true,
@@ -23,12 +23,16 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "allowJs": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "isolatedModules": true
   },
   "include": [
     "src/**/*",
-    "tests/**/*",
-    "lib/**/*"
+    "lib/**/*",
+    "types/**/*"
   ],
   "exclude": [
     "node_modules",
