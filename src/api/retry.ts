@@ -22,6 +22,7 @@ import {
   ESPECIALISTAS,
   isValidProbabilidade 
 } from '@/lib/types/common';
+import { API_CONFIG } from '@/lib/config/api';
 
 /**
  * Schema de validação para o body da requisição
@@ -49,17 +50,6 @@ interface RetryApiResponse {
     debugInfo?: string;
   };
 }
-
-/**
- * Configurações da API
- */
-const API_CONFIG = {
-  MAX_PAYLOAD_SIZE: '1mb',
-  TIMEOUT_MS: 5000,
-  VERSION: '3.2.0',
-  ENABLE_DEBUG: process.env.NODE_ENV === 'development'
-};
-
 /**
  * Handler principal da rota /api/retry
  * 
