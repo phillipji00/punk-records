@@ -22,7 +22,7 @@ import {
   ESPECIALISTAS,
   isValidProbabilidade 
 } from '../lib/types/common';
-import { API_CONFIG } from '../lib/config/api';
+import { API_CONFIG } from '../config/api';
 
 /**
  * Schema de validação para o body da requisição
