@@ -9,7 +9,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { generateRefinementQuestions, executeRefinement } from '../../lib/qaRefiner';
+import { generateRefinementQuestions, executeRefinement } from '../qaRefiner';
 import type { RefinementInput, RefinementQuestion } from '../../lib/types/common';
 
 /**

@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { reviewAnalysis, ReviewInput, ReviewResult } from '../../lib/reviewEngine';
+import { reviewAnalysis, ReviewInput, ReviewResult } from '../reviewEngine';
 import { 
   ExecutionContext, 
   SpecialistResponse, 

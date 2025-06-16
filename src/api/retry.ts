@@ -16,7 +16,7 @@ import {
   type RetryResponse,
   type TipoErro,
   type CategoriaFalha
-} from '../../lib/retryEngine';
+} from '../retryEngine';
 import { 
   ETAPAS_PIPELINE, 
   ESPECIALISTAS,

@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { gerarAnaliseEspecialista, refineAndAnalyze } from '../../lib/specialist-agent';
+import { gerarAnaliseEspecialista, refineAndAnalyze } from '../specialistAgent';
 import { 
   ExecutionContext, 
   SpecialistResponse

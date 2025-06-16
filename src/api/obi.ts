@@ -7,7 +7,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { decidirAcaoObi, diagnosticarSistema } from '../../lib/obiStateManager';
+import { decidirAcaoObi, diagnosticarSistema } from '../obiStateManager';
 import type { 
   RuntimeExecutionContext as ExecutionContext,
   ObiCommand,

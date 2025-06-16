@@ -2,7 +2,7 @@
 // Endpoint para transição entre etapas do pipeline investigativo
 
 import { NextApiRequest, NextApiResponse } from 'next';
-import { advanceStage, getStageInfo, getPipelineMetrics } from '../../lib/pipelineEngine';
+import { advanceStage, getStageInfo, getPipelineMetrics } from '../pipelineEngine';
 import { ExecutionContext, StageTransitionResult } from '../../lib/types/common';
 
 // Tipos de resposta da API
