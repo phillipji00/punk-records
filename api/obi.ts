@@ -195,16 +195,16 @@ export default async function handler(
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     const errorStack = error instanceof Error ? error.stack : undefined;
     
-    return res.status(500).json({
-      error: 'Erro interno ao processar a decisão do Obi.',
-      code: 'INTERNAL_ERROR',
-     details: process.env.NODE_ENV === 'development' ? {
-  message: errorMessage,
-  stack: errorStack || ''  
-} : undefined
-    });
-  }
-}
+return res.status(500).json({
+  error: 'Erro interno ao processar a decisão do Obi.',
+  code: 'INTERNAL_ERROR',
+  ...(process.env.NODE_ENV === 'development' && {
+    details: {
+      message: errorMessage,
+      stack: errorStack || ''  
+    }
+  })
+});
 
 /**
  * Configuração do Next.js para o endpoint
