@@ -177,7 +177,7 @@ export default async function handler(
       metadata: {
         processedAt: new Date().toISOString(),
         version: 'v3.2',
-        contextId: context.idRegistro
+        contextId: context.idRegistro || ''
       }
     };
     
