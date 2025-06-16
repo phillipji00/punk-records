@@ -3,8 +3,8 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { advanceStage, getStageInfo, getPipelineMetrics } from '../src/pipelineEngine';
-import { ExecutionContext, StageTransitionResult } from '../lib/types/common';
-
+import { StageTransitionResult } from '../lib/types/common';
+type ExecutionContext = Parameters<typeof advanceStage>[1];
 // Tipos de resposta da API
 interface PipelineResponse {
   result?: StageTransitionResult;

@@ -22,7 +22,10 @@ import {
   ESPECIALISTAS,
   isValidProbabilidade 
 } from '../lib/types/common';
-import { API_CONFIG } from '../lib/config/api';
+const API_CONFIG = {
+  VERSION: '3.2.0',
+  ENABLE_DEBUG: process.env.NODE_ENV === 'development'
+};
 
 /**
  * Schema de validação para o body da requisição
@@ -203,7 +206,7 @@ function validateInput(body: any): RetryInput {
   
   // Validar etapa conhecida (opcional, mas recomendado)
   const etapasValidas = Object.values(ETAPAS_PIPELINE);
-  if (!etapasValidas.includes(etapaAtual)) {
+  if (!etapasValidas.includes(etapaAtual as any)) {
     console.warn(`Etapa "${etapaAtual}" não está na lista padrão de etapas`);
   }
   
@@ -214,7 +217,7 @@ function validateInput(body: any): RetryInput {
     }
     
     const especialistasValidos = Object.values(ESPECIALISTAS);
-    if (!especialistasValidos.includes(especialista)) {
+    if (!especialistasValidos.includes(especialista as any)) {
       console.warn(`Especialista "${especialista}" não está na lista padrão`);
     }
   }

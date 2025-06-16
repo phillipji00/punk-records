@@ -198,10 +198,10 @@ export default async function handler(
     return res.status(500).json({
       error: 'Erro interno ao processar a decisão do Obi.',
       code: 'INTERNAL_ERROR',
-      details: process.env.NODE_ENV === 'development' ? {
-        message: errorMessage,
-        stack: errorStack
-      } : undefined
+     details: process.env.NODE_ENV === 'development' ? {
+  message: errorMessage,
+  stack: errorStack || ''  
+} : undefined
     });
   }
 }
