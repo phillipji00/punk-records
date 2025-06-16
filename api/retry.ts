@@ -22,10 +22,7 @@ import {
   ESPECIALISTAS,
   isValidProbabilidade 
 } from '../lib/types/common';
-const API_CONFIG = {
-  VERSION: '3.2.0',
-  ENABLE_DEBUG: process.env.NODE_ENV === 'development'
-};
+import { API_CONFIG } from '../lib/config/api';
 
 /**
  * Schema de validação para o body da requisição
@@ -270,7 +267,7 @@ function generateRequestId(): string {
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '1mb'  // ← MUDOU AQUI
+      sizeLimit: API_CONFIG.MAX_PAYLOAD_SIZE
     },
     responseLimit: false,
     externalResolver: true
