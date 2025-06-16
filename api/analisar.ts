@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { gerarAnaliseEspecialista, refineAndAnalyze } from '../specialistAgent';
+import { gerarAnaliseEspecialista, refineAndAnalyze } from '../src/specialistAgent';
 import { 
   ExecutionContext, 
   SpecialistResponse
-} from '../../lib/types/common';
+} from '../lib/types/common';
 
 // Tipos de resposta da API
 interface AnalysisSuccessResponse {

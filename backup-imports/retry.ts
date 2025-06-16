@@ -16,13 +16,13 @@ import {
   type RetryResponse,
   type TipoErro,
   type CategoriaFalha
-} from '../retryEngine';
+} from '@/lib/retryEngine';
 import { 
   ETAPAS_PIPELINE, 
   ESPECIALISTAS,
   isValidProbabilidade 
-} from '../../lib/types/common';
-import { API_CONFIG } from '../../lib/config/api';
+} from '@/lib/types/common';
+import { API_CONFIG } from '@/lib/config/api';
 
 /**
  * Schema de validação para o body da requisição

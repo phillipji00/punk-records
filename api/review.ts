@@ -1,11 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { reviewAnalysis, ReviewInput, ReviewResult } from '../reviewEngine';
+import { reviewAnalysis, ReviewInput, ReviewResult } from '../src/reviewEngine';
 import { 
   ExecutionContext, 
   SpecialistResponse, 
   isValidExecutionContext,
   SPECIALIST_TO_PERSONA 
-} from '../../lib/types/common';
+} from '../lib/types/common';
 
 /**
  * Schema de entrada esperado para o endpoint

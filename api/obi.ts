@@ -7,12 +7,12 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { decidirAcaoObi, diagnosticarSistema } from '../obiStateManager';
+import { decidirAcaoObi, diagnosticarSistema } from '../src/obiStateManager';
 import type { 
   RuntimeExecutionContext as ExecutionContext,
   ObiCommand,
   ObiSystemDiagnosis 
-} from '../../lib/types/common';
+} from '../lib/types/common';
 
 /**
  * Tipos de resposta da API
