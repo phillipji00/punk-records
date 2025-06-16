@@ -9,8 +9,8 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { generateRefinementQuestions, executeRefinement } from '@/lib/qaRefiner';
-import type { RefinementInput, RefinementQuestion } from '@/lib/types/common';
+import { generateRefinementQuestions, executeRefinement } from '../../lib/qaRefiner';
+import type { RefinementInput, RefinementQuestion } from '../../lib/types/common';
 
 /**
  * Schema esperado para o body da requisição
