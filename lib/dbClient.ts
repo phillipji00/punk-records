@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { sql } from '@vercel/postgres';
+import { salvarAliases } from './aliasUtils';
 
 // Configuração do pool de conexões para o Neon
 const pool = new Pool({
@@ -102,6 +103,7 @@ export async function promoverCaso(
         INSERT INTO casos (id_caso, etapa, especialista, probabilidade)
         VALUES ($1, $2, $3, $4)
       `;
+await salvarAliases(id_caso, id_caso);
       await client.query(insertQuery, [id_caso, etapa, especialista, probabilidade]);
       return 'criado';
     }
