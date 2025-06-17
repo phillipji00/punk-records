@@ -1,14 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getDbPool } from '@/lib/dbClient';
 
-const pool = getDbPool();
-await pool.query('...');
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   try {
+    const pool = getDbPool(); // ← Corrigido: usar getDbPool()
     const client = await pool.connect();
     await client.query('SELECT 1');
     client.release();

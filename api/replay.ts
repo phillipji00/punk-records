@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import pool, { initializeDatabase, getCasoStatus } from '../lib/dbClient';
+import { getDbPool, initializeDatabase, getCasoStatus } from '../lib/dbClient';
 
 // Função auxiliar para criar resumo baseado no tipo de registro
 function criarResumo(tipo_registro: string, dados: any): string {
@@ -84,10 +84,12 @@ export default async function handler(
     });
   }
 
+  let client;
+  
   try {
-    await initializeDatabase();           // ← Acorda o banco
-    const pool = getDbPool();             // ← Cria pool seguro
-
+    await initializeDatabase();
+    const pool = getDbPool(); // ← Corrigido: usar getDbPool()
+    client = await pool.connect(); // ← Corrigido: obter client do pool
 
     // Extrair idCaso
     const { idCaso } = req.query;
@@ -194,6 +196,8 @@ export default async function handler(
       detalhes: error instanceof Error ? error.message : 'Erro desconhecido'
     });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
