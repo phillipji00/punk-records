@@ -1,24 +1,27 @@
 import { Pool } from 'pg';
 
-// Configuração do pool de conexões para o Neon
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false
-  } : undefined,
-  // Configurações otimizadas para serverless com timeouts mais longos
-  max: 1,
-  idleTimeoutMillis: 30000,  // Aumentado de 10s para 30s
-  connectionTimeoutMillis: 30000,  // Aumentado de 10s para 30s
-  query_timeout: 25000,  // Timeout para queries individuais
-  statement_timeout: 25000,  // Timeout para statements
-  idle_in_transaction_session_timeout: 30000  // Timeout para transações idle
-});
+let pool: Pool | null = null;
 
-// Adicionar listener de erro no pool
-pool.on('error', (err) => {
-  console.error('Erro inesperado no pool de conexões:', err);
-});
+export function getDbPool(): Pool {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 15000,
+      idleTimeoutMillis: 10000,
+    });
+  }
+  return pool;
+}
+
+export async function initializeDatabase(): Promise<void> {
+  try {
+    await getDbPool().query('SELECT 1');
+  } catch (error) {
+    console.error('Erro ao inicializar banco de dados:', error);
+    throw error;
+  }
+}
 
 // Interface para o registro
 export interface RegistroData {

@@ -133,7 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  try {
+  try { await initializeDatabase();
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
     // Validação do schema unificado

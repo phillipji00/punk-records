@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syndicate v3.5 - Blue Prince Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #24292e;
+            background-color: #ffffff;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 300px;
+            background-color: #f6f8fa;
+            border-right: 1px solid #e1e4e8;
+            padding: 24px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #24292e;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar > ul > li {
+            margin-bottom: 8px;
+        }
+
+        .sidebar a {
+            color: #0366d6;
+            text-decoration: none;
+            display: block;
+            padding: 4px 0;
+            font-size: 14px;
+            border-radius: 6px;
+            padding-left: 8px;
+            transition: all 0.2s;
+        }
+
+        .sidebar a:hover {
+            background-color: #e1e4e8;
+            padding-left: 12px;
+        }
+
+        .sidebar a.active {
+            background-color: #0366d6;
+            color: white;
+            padding-left: 12px;
+        }
+
+        /* Nested navigation */
+        .sidebar ul ul {
+            margin-left: 16px;
+            margin-top: 4px;
+        }
+
+        .sidebar ul ul a {
+            font-size: 13px;
+            color: #586069;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 300px;
+            padding: 32px 48px;
+            max-width: 980px;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+
+        h1 {
+            font-size: 32px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e1e4e8;
+            margin-bottom: 24px;
+        }
+
+        h2 {
+            font-size: 24px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e1e4e8;
+        }
+
+        h3 {
+            font-size: 20px;
+        }
+
+        h4 {
+            font-size: 16px;
+        }
+
+        p {
+            margin-bottom: 16px;
+        }
+
+        /* Code blocks */
+        code {
+            background-color: rgba(27,31,35,.05);
+            border-radius: 3px;
+            font-size: 85%;
+            padding: .2em .4em;
+            font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        pre {
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            padding: 16px;
+            overflow: auto;
+            margin-bottom: 16px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        /* Blockquotes */
+        blockquote {
+            padding: 0 1em;
+            color: #6a737d;
+            border-left: 4px solid #dfe2e5;
+            margin-bottom: 16px;
+        }
+
+        blockquote p {
+            margin-bottom: 0;
+        }
+
+        /* Lists */
+        ul, ol {
+            padding-left: 2em;
+            margin-bottom: 16px;
+        }
+
+        li {
+            margin-bottom: 4px;
+        }
+
+        /* Strong text */
+        strong {
+            font-weight: 600;
+        }
+
+        /* Links */
+        a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Info boxes */
+        .info-box {
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            border: 1px solid;
+        }
+
+        .info-box.note {
+            background-color: #f1f8ff;
+            border-color: #79b8ff;
+        }
+
+        .info-box.warning {
+            background-color: #fffbdd;
+            border-color: #e3b341;
+        }
+
+        .info-box.success {
+            background-color: #f0fff4;
+            border-color: #34d058;
+        }
+
+        /* Header info */
+        .header-info {
+            color: #586069;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        /* Emoji support */
+        .emoji {
+            font-size: 1.2em;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 16px;
+            }
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Target highlight */
+        :target {
+            animation: highlight 2s ease;
+        }
+
+        @keyframes highlight {
+            0% { background-color: #fff5b1; }
+            100% { background-color: transparent; }
+        }
+
+        /* Special quote styling */
+        .character-quote {
+            background-color: #f6f8fa;
+            border-left: 4px solid #0366d6;
+            padding: 16px;
+            margin: 24px 0;
+            font-style: italic;
+        }
+
+        .character-quote cite {
+            display: block;
+            text-align: right;
+            margin-top: 8px;
+            font-weight: 600;
+            color: #586069;
+            font-style: normal;
+        }
+
+        /* Footer */
+        .footer {
+            border-top: 1px solid #e1e4e8;
+            margin-top: 48px;
+            padding-top: 24px;
+            text-align: center;
+            color: #586069;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <h2>📚 Sumário</h2>
+            <ul>
+                <li><a href="#intro">🌟 Introdução</a></li>
+                <li><a href="#team">👥 Conheça a Equipe</a></li>
+                <li><a href="#how-it-works">🔄 Como Funciona</a></li>
+                <li><a href="#examples">🎮 Exemplos Práticos</a></li>
+                <li><a href="#no-spoilers">🚫 Política Anti-Spoiler</a></li>
+                <li><a href="#benefits">🌟 Benefícios</a></li>
+                <li><a href="#faq">❓ Perguntas Frequentes</a></li>
+                <li><a href="#getting-started">🚀 Como Começar</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <h1><span class="emoji">🏚️</span> O que é o Syndicate? Seu Time de Investigação para Blue Prince</h1>
+            
+            <div class="header-info">
+                <strong>Data:</strong> 17 de Junho de 2025<br>
+                <strong>Versão:</strong> 3.5 - Blue Prince Edition
+            </div>
+
+            <section id="intro">
+                <h2><span class="emoji">🌟</span> Introdução: O que é o Syndicate?</h2>
+                
+                <p>Imagine explorar a misteriosa mansão Mt. Holly não sozinho, mas com uma equipe de 5 investigadores brilhantes ao seu lado. Cada um observando detalhes diferentes, conectando pistas espalhadas pelos cômodos, teorizando sobre os mistérios da família Sinclair - tudo isso <strong>SEM SPOILERS</strong>, baseando-se apenas no que você descobriu durante sua exploração.</p>
+                
+                <div class="info-box note">
+                    <p><strong>Isso é o Syndicate.</strong></p>
+                </div>
+                
+                <p>O Syndicate é um sistema de investigação colaborativa projetado especificamente para jogadores de Blue Prince. É como ter cinco amigos super inteligentes jogando junto com você, cada um com sua própria perspectiva e especialidade, mas que respeitam completamente sua jornada de descoberta.</p>
+                
+                <h3><span class="emoji">🎮</span> Para que serve?</h3>
+                
+                <p>O Syndicate foi criado para enriquecer sua experiência em Blue Prince:</p>
+                
+                <ul>
+                    <li><strong>Analisar pistas e símbolos</strong> que você encontrou nas salas exploradas</li>
+                    <li><strong>Conectar informações dispersas</strong> entre diferentes cômodos e andares</li>
+                    <li><strong>Teorizar sobre mistérios</strong> baseando-se apenas em suas descobertas</li>
+                    <li><strong>Otimizar estratégias de exploração</strong> com seus recursos limitados</li>
+                    <li><strong>Decifrar puzzles complexos</strong> sem revelar a solução diretamente</li>
+                    <li><strong>Manter um registro organizado</strong> de todas suas descobertas</li>
+                </ul>
+                
+                <h3><span class="emoji">🔍</span> Por que o Syndicate é especial para Blue Prince?</h3>
+                
+                <p>Blue Prince é um jogo sobre descoberta, mistério e aquele momento "eureka!" quando as peças se encaixam. O Syndicate foi criado para:</p>
+                
+                <ol>
+                    <li><strong>Preservar a Magia da Descoberta</strong>: Nunca revela nada que você não tenha encontrado</li>
+                    <li><strong>Amplificar suas Teorias</strong>: Transforma suas observações em investigações profundas</li>
+                    <li><strong>Organizar o Caos</strong>: A mansão muda diariamente, mas suas descobertas permanecem</li>
+                    <li><strong>Criar Companheirismo</strong>: Você nunca está sozinho nos corredores sombrios</li>
+                    <li><strong>Respeitar seu Ritmo</strong>: Trabalha com o que VOCÊ descobriu, quando descobriu</li>
+                </ol>
+                
+                <p>Pense no Syndicate como aquela experiência de jogar um jogo de mistério com amigos no sofá, onde todos ficam teorizando juntos - mas sem aquele amigo que já jogou e fica dando spoiler!</p>
+            </section>
+
+            <section id="team">
+                <h2><span class="emoji">👥</span> Conheça seus Companheiros de Exploração</h2>
+                
+                <p>Cada membro do Syndicate tem uma perspectiva única sobre os mistérios da mansão Mt. Holly:</p>
+                
+                <h3><span class="emoji">🧢</span> Capitão Obi: O Coordenador</h3>
+                
+                <p><strong>Inspirado em</strong>: Akitaru Obi (Fire Force)</p>
+                
+                <p><strong>Como ele ajuda em Blue Prince</strong>:</p>
+                <ul>
+                    <li>Organiza todas as pistas encontradas por sala e andar</li>
+                    <li>Mantém o foco entre encontrar a sala 46 e investigar outros mistérios</li>
+                    <li>Sintetiza as descobertas da equipe em teorias coerentes</li>
+                    <li>Prioriza investigações baseadas em seus recursos (passos, chaves, gemas)</li>
+                </ul>
+                
+                <blockquote class="character-quote">
+                    "Equipe, Simon encontrou símbolos estranhos em três salas do segundo andar. Precisamos entender se há uma conexão antes que ele gaste mais passos explorando às cegas. L, analise o padrão. Senku, verifique se há uma sequência matemática. Fire Force cuida de Fire Force!"
+                    <cite>— Capitão Obi</cite>
+                </blockquote>
+                
+                <h3><span class="emoji">🍬</span> L Lawliet: O Dedutivo</h3>
+                
+                <p><strong>Inspirado em</strong>: L (Death Note)</p>
+                
+                <p><strong>Como ele ajuda em Blue Prince</strong>:</p>
+                <ul>
+                    <li>Analisa padrões nos puzzles e símbolos encontrados</li>
+                    <li>Calcula probabilidades de rotas eficientes com passos limitados</li>
+                    <li>Conecta pistas dispersas entre salas distantes</li>
+                    <li>Formula teorias sobre a história da família Sinclair</li>
+                </ul>
+                
+                <blockquote class="character-quote">
+                    "*sentado em posição característica* Hmm... Você encontrou retratos de crianças em três salas não adjacentes. A probabilidade disso ser aleatório é de 12%. Sugiro procurar por uma quarta sala com retrato infantil - pode formar um padrão que revele algo sobre Marion Marigold."
+                    <cite>— L Lawliet</cite>
+                </blockquote>
+                
+                <h3><span class="emoji">🧪</span> Senku Ishigami: O Analítico</h3>
+                
+                <p><strong>Inspirado em</strong>: Senku (Dr. Stone)</p>
+                
+                <p><strong>Como ele ajuda em Blue Prince</strong>:</p>
+                <ul>
+                    <li>Decifra puzzles matemáticos e sequências lógicas</li>
+                    <li>Analisa a arquitetura da mansão e suas "regras"</li>
+                    <li>Calcula eficiência de recursos (passos vs recompensas)</li>
+                    <li>Identifica padrões nos mecanismos de puzzle</li>
+                </ul>
+                
+                <blockquote class="character-quote">
+                    "Ku ku ku! Esse puzzle na biblioteca é 10 bilhões por cento baseado na sequência de Fibonacci! Mas espera... os números estão modificados. Se você subtrair o número da sala do valor apresentado... Isso pode ser uma coordenada!"
+                    <cite>— Senku Ishigami</cite>
+                </blockquote>
+                
+                <h3><span class="emoji">😇</span> Norman: O Psicólogo</h3>
+                
+                <p><strong>Inspirado em</strong>: Norman (The Promised Neverland)</p>
+                
+                <p><strong>Como ele ajuda em Blue Prince</strong>:</p>
+                <ul>
+                    <li>Analisa as motivações de Herbert Sinclair e outros personagens</li>
+                    <li>Interpreta o significado emocional das pistas narrativas</li>
+                    <li>Teoriza sobre o desaparecimento de Marion Marigold</li>
+                    <li>Entende a psicologia por trás da construção dos puzzles</li>
+                </ul>
+                
+                <blockquote class="character-quote">
+                    "*sorrindo* Interessante como Herbert escolheu esconder objetos pessoais de Marion apenas em salas com janelas voltadas para o jardim. Isso sugere culpa ou nostalgia. Procure por mais conexões emocionais entre a disposição dos cômodos e a história deles."
+                    <cite>— Norman</cite>
+                </blockquote>
+                
+                <h3><span class="emoji">👁️</span> Isagi Yoichi: O Estrategista Espacial</h3>
+                
+                <p><strong>Inspirado em</strong>: Isagi Yoichi (Blue Lock)</p>
+                
+                <p><strong>Como ele ajuda em Blue Prince</strong>:</p>
+                <ul>
+                    <li>Mapeia mentalmente a mansão e otimiza rotas</li>
+                    <li>Calcula o melhor uso dos 50 passos diários</li>
+                    <li>Visualiza conexões entre salas e andares</li>
+                    <li>Planeja estratégias para maximizar descobertas</li>
+                </ul>
+                
+                <blockquote class="character-quote">
+                    "Estou vendo o campo completo! Com 23 passos restantes e 2 chaves, você pode alcançar aquela sala trancada no terceiro andar E voltar para o quarto seguro. Mas se pegar a rota pelo corredor oeste, economiza 4 passos para explorar mais uma sala!"
+                    <cite>— Isagi Yoichi</cite>
+                </blockquote>
+            </section>
+
+            <section id="how-it-works">
+                <h2><span class="emoji">🔄</span> Como Funciona: Investigando a Mansão Mt. Holly</h2>
+                
+                <p>O Syndicate segue um processo estruturado para ajudar você a desvendar os mistérios de Blue Prince:</p>
+                
+                <h3><span class="emoji">📋</span> O Processo de Investigação</h3>
+                
+                <h4>1️⃣ Compartilhamento de Descobertas</h4>
+                <p><strong>Você compartilha</strong>: Capturas de tela, notas sobre puzzles, símbolos encontrados, trechos de diários, sua rota do dia.</p>
+                <p><strong>O Syndicate organiza</strong>: Todas as informações são catalogadas por sala, andar e tipo de pista.</p>
+                
+                <h4>2️⃣ Análise Inicial</h4>
+                <p><strong>Os especialistas examinam</strong>: Cada um analisa as descobertas sob sua perspectiva única.</p>
+                <p><strong>Exemplo</strong>:</p>
+                <ul>
+                    <li>L procura padrões lógicos nos símbolos</li>
+                    <li>Senku analisa aspectos matemáticos dos puzzles</li>
+                    <li>Norman interpreta cartas e diários encontrados</li>
+                    <li>Isagi mapeia as conexões espaciais</li>
+                </ul>
+                
+                <h4>3️⃣ Validação Cruzada</h4>
+                <p><strong>Conferência entre especialistas</strong>: Eles comparam suas análises para encontrar conexões.</p>
+                <p><strong>Resultado</strong>: Teorias mais robustas que consideram múltiplos aspectos.</p>
+                
+                <h4>4️⃣ Síntese de Teorias</h4>
+                <p><strong>L lidera a integração</strong>: Todas as análises são combinadas em teorias coerentes.</p>
+                <p><strong>Importante</strong>: As teorias são baseadas APENAS no que você descobriu.</p>
+                
+                <h4>5️⃣ Sugestões de Exploração</h4>
+                <p><strong>Sem spoilers</strong>: A equipe sugere direções promissoras para investigar.</p>
+                <p><strong>Exemplo</strong>: "Baseado nos símbolos que você encontrou, investigar salas com temas similares no andar superior pode revelar mais do padrão."</p>
+                
+                <h4>6️⃣ Documentação Persistente</h4>
+                <p><strong>Memória entre runs</strong>: Todas as descobertas são mantidas, mesmo quando a mansão se reorganiza.</p>
+                <p><strong>Vantagem</strong>: Você constrói conhecimento progressivamente, run após run.</p>
+                
+                <h3><span class="emoji">⏱️</span> Modos de Investigação</h3>
+                
+                <h4><span class="emoji">🏃</span> Investigação Rápida (Durante o Jogo)</h4>
+                <ul>
+                    <li>Para quando você está no meio de uma run</li>
+                    <li>Análises focadas em decisões imediatas</li>
+                    <li>"Tenho 15 passos e 3 portas, qual escolher?"</li>
+                </ul>
+                
+                <h4><span class="emoji">🔍</span> Investigação Profunda (Entre Runs)</h4>
+                <ul>
+                    <li>Para análise detalhada de todas as descobertas</li>
+                    <li>Conexão de pistas de múltiplas runs</li>
+                    <li>Teorização sobre os mistérios maiores</li>
+                </ul>
+                
+                <h4><span class="emoji">📚</span> Modo Arquivo (Organização)</h4>
+                <ul>
+                    <li>Catalogação de todas as descobertas</li>
+                    <li>Criação de "mapas mentais" dos mistérios</li>
+                    <li>Preparação para runs futuras</li>
+                </ul>
+            </section>
+
+            <section id="examples">
+                <h2><span class="emoji">🎮</span> Exemplos Práticos: O Syndicate em Ação no Blue Prince</h2>
+                
+                <h3><span class="emoji">🔍</span> Caso 1: O Enigma dos Retratos</h3>
+                
+                <p><strong>Situação</strong>: Durante três runs diferentes, você encontrou retratos de crianças em salas aparentemente aleatórias. Cada retrato tinha um símbolo diferente no verso.</p>
+                
+                <p><strong>Como o Syndicate ajudou</strong>:</p>
+                
+                <blockquote class="character-quote">
+                    "Os símbolos aparecem em salas nos andares 2, 3 e 4. Seguindo a progressão lógica, deve haver um quarto símbolo no quinto andar. A probabilidade de formarem uma mensagem quando combinados é de 78%."
+                    <cite>— L</cite>
+                </blockquote>
+                
+                <blockquote class="character-quote">
+                    "Ku ku ku! Os símbolos são 10 bilhões por cento alquímicos! Representam elementos: água, fogo, terra... falta o ar! E olha só - as salas onde você os encontrou têm decorações temáticas correspondentes!"
+                    <cite>— Senku</cite>
+                </blockquote>
+                
+                <blockquote class="character-quote">
+                    "*sorrindo* Crianças em retratos antigos, símbolos elementais... Herbert estava documentando algo sobre a infância. Talvez experiências? Ou seria uma metáfora para algo que Marion Marigold escreveu?"
+                    <cite>— Norman</cite>
+                </blockquote>
+                
+                <blockquote class="character-quote">
+                    "Visualizando a disposição: as três salas formam um triângulo perfeito na planta da mansão! A quarta sala completaria um quadrado. No quinto andar, seria a sala... *calcula* ...diretamente acima da biblioteca!"
+                    <cite>— Isagi</cite>
+                </blockquote>
+                
+                <p><strong>Resultado</strong>: Sem revelar o que você encontraria, a equipe ajudou a conectar pistas dispersas e sugeriu uma direção lógica para investigar.</p>
+                
+                <h3><span class="emoji">🎲</span> Caso 2: Otimização de Recursos</h3>
+                
+                <p><strong>Situação</strong>: Run 7, você tem 32 passos restantes, 2 chaves, 5 gemas e acabou de encontrar uma bifurcação com 3 portas trancadas.</p>
+                
+                <p><strong>Como o Syndicate ajudou</strong>:</p>
+                
+                <div class="info-box note">
+                    <p>A equipe analisou todas as opções considerando recursos limitados, histórico de explorações e potencial narrativo de cada rota.</p>
+                </div>
+                
+                <p><strong>Resultado</strong>: A equipe apresentou todas as perspectivas, deixando a decisão final com você, mas com muito mais informação para escolher.</p>
+                
+                <h3><span class="emoji">📜</span> Caso 3: Decifrando o Diário Fragmentado</h3>
+                
+                <p><strong>Situação</strong>: Ao longo de 5 runs, você encontrou 7 páginas rasgadas de um diário. Elas parecem fora de ordem e algumas têm manchas que ocultam palavras.</p>
+                
+                <p><strong>Como o Syndicate ajudou</strong>: O Syndicate ajudou a encontrar padrões e significados nas páginas sem completar as lacunas por você.</p>
+            </section>
+
+            <section id="no-spoilers">
+                <h2><span class="emoji">🚫</span> Política Anti-Spoiler: Jogando com Integridade</h2>
+                
+                <p>O Syndicate tem um compromisso fundamental: <strong>preservar sua experiência de descoberta</strong>.</p>
+                
+                <h3>✅ O Syndicate SEMPRE:</h3>
+                
+                <ol>
+                    <li><strong>Trabalha apenas com suas descobertas</strong>
+                        <ul>
+                            <li>Analisa somente o que você encontrou</li>
+                            <li>Nunca assume conhecimento que você não tem</li>
+                            <li>Respeita seu ritmo de exploração</li>
+                        </ul>
+                    </li>
+                    
+                    <li><strong>Oferece perspectivas, não respostas</strong>
+                        <ul>
+                            <li>"Esse símbolo pode ter conexão com..." ✅</li>
+                            <li>"Esse símbolo significa X" ❌</li>
+                        </ul>
+                    </li>
+                    
+                    <li><strong>Sugere direções, não destinos</strong>
+                        <ul>
+                            <li>"Explorar salas com temas similares pode revelar mais" ✅</li>
+                            <li>"Vá para a sala 23 no quarto andar" ❌</li>
+                        </ul>
+                    </li>
+                    
+                    <li><strong>Teoriza com você, não por você</strong>
+                        <ul>
+                            <li>Constrói em cima das suas teorias</li>
+                            <li>Adiciona perspectivas às suas ideias</li>
+                            <li>Nunca "corrige" suas interpretações</li>
+                        </ul>
+                    </li>
+                </ol>
+                
+                <h3>❌ O Syndicate NUNCA:</h3>
+                
+                <ol>
+                    <li><strong>Revela conteúdo não descoberto</strong>
+                        <ul>
+                            <li>Localização da sala 46</li>
+                            <li>Soluções de puzzles</li>
+                            <li>Conteúdo de salas não exploradas</li>
+                        </ul>
+                    </li>
+                    
+                    <li><strong>Estraga surpresas narrativas</strong>
+                        <ul>
+                            <li>Reviravoltas da história</li>
+                            <li>Revelações sobre personagens</li>
+                            <li>Significados ocultos que você ainda não percebeu</li>
+                        </ul>
+                    </li>
+                    
+                    <li><strong>Usa conhecimento externo</strong>
+                        <ul>
+                            <li>Informações de wikis</li>
+                            <li>Experiências de outros jogadores</li>
+                            <li>Guias ou walkthroughs</li>
+                        </ul>
+                    </li>
+                    
+                    <li><strong>Tira suas próprias conclusões</strong>
+                        <ul>
+                            <li>O prazer de descobrir é seu</li>
+                            <li>Os momentos "eureka" são sagrados</li>
+                            <li>Sua interpretação é válida</li>
+                        </ul>
+                    </li>
+                </ol>
+                
+                <blockquote class="character-quote">
+                    "O Syndicate existe para amplificar sua experiência, não para substituí-la. Somos seus companheiros de jornada, não seu GPS."
+                    <cite>— Filosofia Central do Syndicate</cite>
+                </blockquote>
+            </section>
+
+            <section id="benefits">
+                <h2><span class="emoji">🌟</span> Benefícios: Por que Explorar com o Syndicate?</h2>
+                
+                <h3><span class="emoji">🧠</span> Múltiplas Perspectivas</h3>
+                
+                <p><strong>Sozinho</strong>: "Encontrei símbolos estranhos em algumas salas."</p>
+                
+                <p><strong>Com o Syndicate</strong>:</p>
+                <ul>
+                    <li>L: "Há um padrão matemático na distribuição"</li>
+                    <li>Senku: "Os símbolos têm origem alquímica"</li>
+                    <li>Norman: "Representam estados emocionais"</li>
+                    <li>Isagi: "Formam uma rota quando conectados"</li>
+                </ul>
+                
+                <h3><span class="emoji">📝</span> Memória Persistente Entre Runs</h3>
+                
+                <p><strong>O Problema</strong>: A mansão muda diariamente, é fácil esquecer descobertas importantes</p>
+                
+                <p><strong>A Solução</strong>: O Syndicate mantém um registro organizado de TUDO que você encontrou, catalogado e pronto para consulta</p>
+                
+                <h3><span class="emoji">🤝</span> Companheirismo na Exploração</h3>
+                
+                <p><strong>A Solidão</strong>: Blue Prince pode ser um jogo solitário e contemplativo</p>
+                
+                <p><strong>A Companhia</strong>: Com o Syndicate, cada descoberta é celebrada, cada teoria é discutida, cada puzzle é um desafio compartilhado</p>
+                
+                <h3><span class="emoji">🎭</span> Narrativa Enriquecida</h3>
+                
+                <p><strong>Superficial</strong>: "Encontrei uma carta velha"</p>
+                
+                <p><strong>Profundo</strong>: Norman analisa as emoções do autor, L conecta com outras pistas, Senku data o documento, Isagi localiza sua importância no mistério geral</p>
+                
+                <h3><span class="emoji">🎯</span> Decisões Mais Informadas</h3>
+                
+                <p><strong>Antes</strong>: "Vou por essa porta porque... sim?"</p>
+                
+                <p><strong>Depois</strong>: Decisões baseadas em análise de recursos, probabilidades, conexões narrativas e otimização de rota</p>
+                
+                <h3><span class="emoji">🔄</span> Aprendizado Acelerado</h3>
+                
+                <p><strong>Natural</strong>: Leva muitas runs para entender os padrões da mansão</p>
+                
+                <p><strong>Assistido</strong>: O Syndicate ajuda a identificar padrões mais rapidamente (sem revelar seus significados)</p>
+            </section>
+
+            <section id="faq">
+                <h2><span class="emoji">❓</span> Perguntas Frequentes</h2>
+                
+                <h3><span class="emoji">🎮</span> Sobre Blue Prince e o Syndicate</h3>
+                
+                <p><strong>P: O Syndicate funciona apenas com Blue Prince?</strong><br>
+                R: Sim! Foi criado especificamente para enriquecer a experiência de Blue Prince, respeitando sua natureza de descoberta e mistério.</p>
+                
+                <p><strong>P: Preciso compartilhar spoilers para usar o Syndicate?</strong><br>
+                R: Nunca! O Syndicate trabalha apenas com o que VOCÊ descobriu. Na verdade, ele ativamente evita spoilers.</p>
+                
+                <p><strong>P: Como o Syndicate sabe o que não me contar?</strong><br>
+                R: O sistema analisa apenas as informações que você fornece. Não tem acesso a wikis, guias ou qualquer fonte externa.</p>
+                
+                <p><strong>P: Posso usar o Syndicate em minha primeira run?</strong><br>
+                R: Claro! Ele se adapta ao seu nível de conhecimento, seja na run 1 ou 100.</p>
+                
+                <h3><span class="emoji">🔧</span> Perguntas Técnicas</h3>
+                
+                <p><strong>P: Como compartilho minhas descobertas?</strong><br>
+                R: Screenshots, notas escritas, descrições - qualquer formato funciona! O Syndicate processa tudo.</p>
+                
+                <p><strong>P: O Syndicate salva minhas descobertas entre sessões?</strong><br>
+                R: Sim! Tudo é salvo no Vault, criando seu arquivo pessoal de investigação da mansão Mt. Holly.</p>
+                
+                <p><strong>P: Posso apagar descobertas se quiser "esquecer" algo?</strong><br>
+                R: Sim, você tem controle total sobre seu arquivo de descobertas.</p>
+                
+                <p><strong>P: Funciona em tempo real enquanto jogo?</strong><br>
+                R: Pode funcionar tanto em tempo real (decisões rápidas) quanto entre runs (análise profunda).</p>
+                
+                <h3><span class="emoji">💭</span> Sobre a Experiência</h3>
+                
+                <p><strong>P: O Syndicate torna o jogo muito fácil?</strong><br>
+                R: Não! Ele não resolve puzzles por você - apenas ajuda a organizar e conectar suas próprias descobertas.</p>
+                
+                <p><strong>P: Vou perder a sensação de descoberta?</strong><br>
+                R: Pelo contrário! O Syndicate amplifica essa sensação ao ajudar você a perceber conexões que poderia perder.</p>
+                
+                <p><strong>P: E se eu quiser explorar algo que o Syndicate não recomendou?</strong><br>
+                R: Perfeito! O Syndicate oferece perspectivas, não ordens. Sua intuição sempre tem prioridade.</p>
+                
+                <p><strong>P: Posso usar o Syndicate com amigos?</strong><br>
+                R: Sim! É ótimo para sessões cooperativas onde amigos jogam juntos e teorizam.</p>
+            </section>
+
+            <section id="getting-started">
+                <h2><span class="emoji">🚀</span> Como Começar sua Aventura</h2>
+                
+                <h3>1️⃣ Sua Primeira Sessão</h3>
+                
+                <ol>
+                    <li><strong>Jogue Blue Prince normalmente</strong> por pelo menos uma run completa</li>
+                    <li><strong>Faça anotações ou screenshots</strong> do que chamar sua atenção</li>
+                    <li><strong>Compartilhe com o Syndicate</strong> suas descobertas</li>
+                    <li><strong>Receba análises personalizadas</strong> baseadas apenas no que você encontrou</li>
+                </ol>
+                
+                <h3>2️⃣ Durante a Exploração</h3>
+                
+                <h4>Modo Decisão Rápida:</h4>
+                <ul>
+                    <li>"Tenho 20 passos e 3 caminhos possíveis"</li>
+                    <li>"Este puzzle parece matemático, alguma dica?"</li>
+                    <li>"Estes símbolos se conectam?"</li>
+                </ul>
+                
+                <h4>Modo Investigação:</h4>
+                <ul>
+                    <li>"Quero entender melhor as cartas que encontrei"</li>
+                    <li>"Há um padrão nas salas onde encontro gemas?"</li>
+                    <li>"O que sabemos sobre Marion até agora?"</li>
+                </ul>
+                
+                <h3>3️⃣ Entre Runs</h3>
+                
+                <h4>Revisão Completa:</h4>
+                <ul>
+                    <li>Compartilhe todas as descobertas da run</li>
+                    <li>Receba análise completa da equipe</li>
+                    <li>Identifique prioridades para próxima run</li>
+                </ul>
+                
+                <h4>Construção de Teorias:</h4>
+                <ul>
+                    <li>"Minha teoria é que Herbert..."</li>
+                    <li>"Acho que os símbolos significam..."</li>
+                    <li>"Marion desapareceu porque..."</li>
+                </ul>
+                
+                <h3>4️⃣ Comandos Úteis</h3>
+                
+                <ul>
+                    <li><code>"Análise rápida"</code>: Para decisões imediatas</li>
+                    <li><code>"Investigação profunda"</code>: Para análise detalhada</li>
+                    <li><code>"O que sabemos sobre [tópico]?"</code>: Resumo de descobertas</li>
+                    <li><code>"Teorias sobre [mistério]"</code>: Exploração de possibilidades</li>
+                    <li><code>"Otimizar rota"</code>: Ajuda com gerenciamento de recursos</li>
+                </ul>
+            </section>
+
+            <footer class="footer">
+                <h2><span class="emoji">🏚️</span> Conclusão: Bem-vindo à Mansão Mt. Holly</h2>
+                
+                <p>Blue Prince é uma jornada de descoberta, mistério e revelação. O Syndicate existe para tornar essa jornada ainda mais rica e memorável, sem jamais tirar de você o prazer da descoberta.</p>
+                
+                <p>Com Obi coordenando, L deduzindo, Senku analisando, Norman interpretando e Isagi visualizando, você nunca estará sozinho nos corredores sombrios da mansão. Cada símbolo encontrado, cada puzzle decifrado, cada página de diário descoberta -
