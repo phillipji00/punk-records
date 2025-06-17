@@ -109,7 +109,11 @@ export default async function handler(
     });
   }
 
-  const client = await pool.connect();
+  let client;
+  
+  try {
+    // Tentar conectar com timeout maior
+    client = await pool.connect();
 
   try {
     // Inicializar banco se necessário
@@ -306,11 +310,21 @@ export default async function handler(
   } catch (error) {
     console.error('Erro na auditoria:', error);
     
+    // Tratamento específico para erro de timeout
+    if (error instanceof Error && error.message.includes('timeout')) {
+      return res.status(503).json({ 
+        erro: 'Serviço temporariamente indisponível',
+        detalhes: 'Timeout ao conectar com o banco de dados. Tente novamente em alguns instantes.'
+      });
+    }
+    
     return res.status(500).json({ 
       erro: 'Erro interno ao processar auditoria',
       detalhes: error instanceof Error ? error.message : 'Erro desconhecido'
     });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }

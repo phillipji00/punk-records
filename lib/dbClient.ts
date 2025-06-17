@@ -6,10 +6,18 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
   } : undefined,
-  // Configurações otimizadas para serverless
+  // Configurações otimizadas para serverless com timeouts mais longos
   max: 1,
-  idleTimeoutMillis: 10000,
-  connectionTimeoutMillis: 10000
+  idleTimeoutMillis: 30000,  // Aumentado de 10s para 30s
+  connectionTimeoutMillis: 30000,  // Aumentado de 10s para 30s
+  query_timeout: 25000,  // Timeout para queries individuais
+  statement_timeout: 25000,  // Timeout para statements
+  idle_in_transaction_session_timeout: 30000  // Timeout para transações idle
+});
+
+// Adicionar listener de erro no pool
+pool.on('error', (err) => {
+  console.error('Erro inesperado no pool de conexões:', err);
 });
 
 // Interface para o registro
@@ -24,66 +32,98 @@ export interface RegistroData {
   probabilidade?: number;
 }
 
+// Função helper para executar queries com retry
+async function executeQueryWithRetry(
+  query: string, 
+  params: any[] = [], 
+  maxRetries: number = 2
+): Promise<any> {
+  let lastError;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(query, params);
+      return result;
+    } catch (error) {
+      lastError = error;
+      console.error(`Tentativa ${attempt + 1} falhou:`, error);
+      
+      // Se não for erro de timeout ou conexão, não tentar novamente
+      if (error instanceof Error && 
+          !error.message.includes('timeout') && 
+          !error.message.includes('connection')) {
+        throw error;
+      }
+      
+      // Aguardar antes de tentar novamente
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
+    } finally {
+      client.release();
+    }
+  }
+  
+  throw lastError;
+}
+
 // Função para criar as tabelas se não existirem
 export async function initializeDatabase() {
-  const client = await pool.connect();
+  const createTablesQuery = `
+    -- Criar tabela de registros
+    CREATE TABLE IF NOT EXISTS registros (
+      id SERIAL PRIMARY KEY,
+      id_registro UUID DEFAULT gen_random_uuid() UNIQUE,
+      tipo_registro VARCHAR(50) NOT NULL,
+      autor VARCHAR(255) NOT NULL,
+      dados JSONB NOT NULL,
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      id_caso VARCHAR(255) NOT NULL,
+      etapa VARCHAR(255) NOT NULL,
+      especialista VARCHAR(255) NOT NULL,
+      probabilidade DECIMAL(3,2),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_registros_id_caso ON registros(id_caso);
+    CREATE INDEX IF NOT EXISTS idx_registros_tipo ON registros(tipo_registro);
+    CREATE INDEX IF NOT EXISTS idx_registros_timestamp ON registros(timestamp);
+
+    -- Criar tabela de casos
+    CREATE TABLE IF NOT EXISTS casos (
+      id SERIAL PRIMARY KEY,
+      id_caso TEXT UNIQUE NOT NULL,
+      etapa TEXT NOT NULL,
+      especialista TEXT NOT NULL,
+      probabilidade REAL,
+      timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_casos_id_caso ON casos(id_caso);
+
+    -- Criar tabela de aliases
+    CREATE TABLE IF NOT EXISTS caso_aliases (
+      id SERIAL PRIMARY KEY,
+      id_caso TEXT NOT NULL,
+      alias TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(id_caso, alias),
+      FOREIGN KEY (id_caso) REFERENCES casos(id_caso) ON DELETE CASCADE
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_caso_aliases_alias ON caso_aliases(alias);
+    CREATE INDEX IF NOT EXISTS idx_caso_aliases_id_caso ON caso_aliases(id_caso);
+  `;
+
   try {
-    // Criar tabela de registros
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS registros (
-        id_registro UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-        tipo_registro VARCHAR(50) NOT NULL,
-        autor VARCHAR(255) NOT NULL,
-        dados JSONB NOT NULL,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        id_caso VARCHAR(255) NOT NULL,
-        etapa VARCHAR(255) NOT NULL,
-        especialista VARCHAR(255) NOT NULL,
-        probabilidade DECIMAL(3,2),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-      
-      CREATE INDEX IF NOT EXISTS idx_registros_id_caso ON registros(id_caso);
-      CREATE INDEX IF NOT EXISTS idx_registros_tipo ON registros(tipo_registro);
-      CREATE INDEX IF NOT EXISTS idx_registros_timestamp ON registros(timestamp);
-    `);
-
-    // Criar tabela de casos
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS casos (
-        id SERIAL PRIMARY KEY,
-        id_caso TEXT UNIQUE NOT NULL,
-        etapa TEXT NOT NULL,
-        especialista TEXT NOT NULL,
-        probabilidade REAL,
-        timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      );
-      
-      CREATE INDEX IF NOT EXISTS idx_casos_id_caso ON casos(id_caso);
-    `);
-
-    // Criar tabela de aliases
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS caso_aliases (
-        id SERIAL PRIMARY KEY,
-        id_caso TEXT NOT NULL,
-        alias TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(id_caso, alias),
-        FOREIGN KEY (id_caso) REFERENCES casos(id_caso) ON DELETE CASCADE
-      );
-      
-      CREATE INDEX IF NOT EXISTS idx_caso_aliases_alias ON caso_aliases(alias);
-      CREATE INDEX IF NOT EXISTS idx_caso_aliases_id_caso ON caso_aliases(id_caso);
-    `);
+    await executeQueryWithRetry(createTablesQuery);
   } catch (error) {
     console.error('Erro ao inicializar banco de dados:', error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
@@ -94,10 +134,9 @@ export async function promoverCaso(
   especialista: string,
   probabilidade: number | null = null
 ): Promise<'criado' | 'atualizado'> {
-  const client = await pool.connect();
   try {
     const existingQuery = 'SELECT id FROM casos WHERE id_caso = $1 LIMIT 1';
-    const existing = await client.query(existingQuery, [id_caso]);
+    const existing = await executeQueryWithRetry(existingQuery, [id_caso]);
 
     if (existing.rowCount && existing.rowCount > 0) {
       const updateQuery = `
@@ -109,14 +148,14 @@ export async function promoverCaso(
             updated_at = NOW()
         WHERE id_caso = $4
       `;
-      await client.query(updateQuery, [etapa, especialista, probabilidade, id_caso]);
+      await executeQueryWithRetry(updateQuery, [etapa, especialista, probabilidade, id_caso]);
       return 'atualizado';
     } else {
       const insertQuery = `
         INSERT INTO casos (id_caso, etapa, especialista, probabilidade)
         VALUES ($1, $2, $3, $4)
       `;
-      await client.query(insertQuery, [id_caso, etapa, especialista, probabilidade]);
+      await executeQueryWithRetry(insertQuery, [id_caso, etapa, especialista, probabilidade]);
       
       // Salvar aliases após criar o caso
       try {
@@ -131,82 +170,72 @@ export async function promoverCaso(
   } catch (error) {
     console.error('Erro ao promover caso:', error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
 // Função para inserir um novo registro
 export async function insertRegistro(data: RegistroData): Promise<string> {
-  const client = await pool.connect();
+  const query = `
+    INSERT INTO registros (
+      tipo_registro, autor, dados, timestamp, 
+      id_caso, etapa, especialista, probabilidade
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING id_registro
+  `;
+  
+  const values = [
+    data.tipo_registro,
+    data.autor,
+    JSON.stringify(data.dados),
+    data.timestamp || new Date().toISOString(),
+    data.id_caso,
+    data.etapa,
+    data.especialista,
+    data.probabilidade || null
+  ];
+  
   try {
-    const query = `
-      INSERT INTO registros (
-        tipo_registro, autor, dados, timestamp, 
-        id_caso, etapa, especialista, probabilidade
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING id_registro
-    `;
-    
-    const values = [
-      data.tipo_registro,
-      data.autor,
-      JSON.stringify(data.dados),
-      data.timestamp || new Date().toISOString(),
-      data.id_caso,
-      data.etapa,
-      data.especialista,
-      data.probabilidade || null
-    ];
-    
-    const result = await client.query(query, values);
+    const result = await executeQueryWithRetry(query, values);
     return result.rows[0].id_registro;
   } catch (error) {
     console.error('Erro ao inserir registro:', error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
 // Função para buscar registros por caso
 export async function getRegistrosPorCaso(id_caso: string) {
-  const client = await pool.connect();
+  const query = `
+    SELECT * FROM registros 
+    WHERE id_caso = $1 
+    ORDER BY timestamp DESC
+  `;
+  
   try {
-    const query = `
-      SELECT * FROM registros 
-      WHERE id_caso = $1 
-      ORDER BY timestamp DESC
-    `;
-    const result = await client.query(query, [id_caso]);
+    const result = await executeQueryWithRetry(query, [id_caso]);
     return result.rows;
   } catch (error) {
     console.error('Erro ao buscar registros por caso:', error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
 // Função para buscar um registro específico
 export async function getRegistroPorId(id_registro: string) {
-  const client = await pool.connect();
+  const query = `SELECT * FROM registros WHERE id_registro = $1`;
+  
   try {
-    const query = `SELECT * FROM registros WHERE id_registro = $1`;
-    const result = await client.query(query, [id_registro]);
+    const result = await executeQueryWithRetry(query, [id_registro]);
     return result.rows[0] || null;
   } catch (error) {
     console.error('Erro ao buscar registro por ID:', error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
 // Função para buscar o status de um caso
 export async function getCasoStatus(idCaso: string) {
-  const client = await pool.connect();
   try {
     // Primeiro tenta buscar direto pelo id_caso
     let query = `
@@ -219,7 +248,7 @@ export async function getCasoStatus(idCaso: string) {
       FROM casos 
       WHERE id_caso = $1
     `;
-    let result = await client.query(query, [idCaso]);
+    let result = await executeQueryWithRetry(query, [idCaso]);
     
     // Se não encontrar, tenta buscar por alias
     if (result.rowCount === 0) {
@@ -235,15 +264,13 @@ export async function getCasoStatus(idCaso: string) {
         WHERE ca.alias = $1
         LIMIT 1
       `;
-      result = await client.query(query, [idCaso]);
+      result = await executeQueryWithRetry(query, [idCaso]);
     }
     
     return result.rows[0] || null;
   } catch (error) {
     console.error('Erro ao buscar status do caso:', error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
@@ -254,49 +281,45 @@ export async function upsertCasoStatus(
   especialista: string,
   probabilidade?: number
 ) {
-  const client = await pool.connect();
+  const query = `
+    INSERT INTO casos (id_caso, etapa, especialista, probabilidade, timestamp)
+    VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+    ON CONFLICT (id_caso) 
+    DO UPDATE SET 
+      etapa = EXCLUDED.etapa,
+      especialista = EXCLUDED.especialista,
+      probabilidade = EXCLUDED.probabilidade,
+      timestamp = CURRENT_TIMESTAMP,
+      updated_at = CURRENT_TIMESTAMP
+    RETURNING *
+  `;
+  
+  const values = [idCaso, etapa, especialista, probabilidade || null];
+  
   try {
-    const query = `
-      INSERT INTO casos (id_caso, etapa, especialista, probabilidade, timestamp)
-      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-      ON CONFLICT (id_caso) 
-      DO UPDATE SET 
-        etapa = EXCLUDED.etapa,
-        especialista = EXCLUDED.especialista,
-        probabilidade = EXCLUDED.probabilidade,
-        timestamp = CURRENT_TIMESTAMP,
-        updated_at = CURRENT_TIMESTAMP
-      RETURNING *
-    `;
-    
-    const values = [idCaso, etapa, especialista, probabilidade || null];
-    const result = await client.query(query, values);
+    const result = await executeQueryWithRetry(query, values);
     return result.rows[0];
   } catch (error) {
     console.error('Erro ao atualizar/criar status do caso:', error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
 // Função para buscar casos recentes
 export async function getCasosRecentes(limit: number = 10) {
-  const client = await pool.connect();
+  const query = `
+    SELECT id_caso, etapa, especialista, probabilidade, timestamp
+    FROM casos
+    ORDER BY timestamp DESC
+    LIMIT $1
+  `;
+  
   try {
-    const query = `
-      SELECT id_caso, etapa, especialista, probabilidade, timestamp
-      FROM casos
-      ORDER BY timestamp DESC
-      LIMIT $1
-    `;
-    const result = await client.query(query, [limit]);
+    const result = await executeQueryWithRetry(query, [limit]);
     return result.rows;
   } catch (error) {
     console.error('Erro ao buscar casos recentes:', error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
