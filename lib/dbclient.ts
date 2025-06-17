@@ -51,7 +51,6 @@ export async function initializeDatabase() {
     client.release();
   }
 }
-
 // Função para inserir um novo registro
 export async function insertRegistro(data: RegistroData): Promise<string> {
   const client = await pool.connect();
