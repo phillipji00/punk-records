@@ -179,56 +179,5 @@ export async function upsertCasoStatus(
   }
 }
 
-// Função para buscar o status de um caso
-export async function getCasoStatus(idCaso: string) {
-  const client = await pool.connect();
-  try {
-    const query = `
-      SELECT 
-        id_caso,
-        etapa,
-        especialista,
-        probabilidade,
-        timestamp
-      FROM casos 
-      WHERE id_caso = $1
-    `;
-    const result = await client.query(query, [idCaso]);
-    return result.rows[0] || null;
-  } finally {
-    client.release();
-  }
-}
-
-// Função para atualizar ou criar status de caso
-export async function upsertCasoStatus(
-  idCaso: string,
-  etapa: string,
-  especialista: string,
-  probabilidade?: number
-) {
-  const client = await pool.connect();
-  try {
-    const query = `
-      INSERT INTO casos (id_caso, etapa, especialista, probabilidade, timestamp)
-      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-      ON CONFLICT (id_caso) 
-      DO UPDATE SET 
-        etapa = EXCLUDED.etapa,
-        especialista = EXCLUDED.especialista,
-        probabilidade = EXCLUDED.probabilidade,
-        timestamp = CURRENT_TIMESTAMP,
-        updated_at = CURRENT_TIMESTAMP
-      RETURNING *
-    `;
-    
-    const values = [idCaso, etapa, especialista, probabilidade || null];
-    const result = await client.query(query, values);
-    return result.rows[0];
-  } finally {
-    client.release();
-  }
-}
-
 // Exporta o pool para uso direto se necessário
 export default pool;
