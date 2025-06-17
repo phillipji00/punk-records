@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { insertRegistro, initializeDatabase } from '../lib/dbClient';
+import { insertRegistro, initializeDatabase, type RegistroData } from '../lib/dbClient';
 
 // Schema unificado com todos os campos possíveis no root
 // Necessário porque o GPT não consegue lidar com objetos genéricos/dinâmicos
@@ -85,8 +85,8 @@ function validarCamposEspecificos(data: z.infer<typeof RegistroSchemaUnificado>)
 }
 
 // Função para extrair apenas os campos relevantes para cada tipo
-function extrairDadosEspecificos(data: z.infer<typeof RegistroSchemaUnificado>) {
-  const camposBase = {
+function extrairDadosEspecificos(data: z.infer<typeof RegistroSchemaUnificado>): Record<string, any> {
+  const camposBase: Record<string, any> = {
     hipotese: data.hipotese,
     justificativa: data.justificativa,
     acoes_recomendadas: data.acoes_recomendadas,
@@ -101,10 +101,14 @@ function extrairDadosEspecificos(data: z.infer<typeof RegistroSchemaUnificado>) 
     conteudo: data.conteudo
   };
   
-  // Remove campos undefined
-  return Object.fromEntries(
-    Object.entries(camposBase).filter(([_, v]) => v !== undefined)
-  );
+  // Remove campos undefined e retorna como Record<string, any>
+  const resultado: Record<string, any> = {};
+  for (const [key, value] of Object.entries(camposBase)) {
+    if (value !== undefined) {
+      resultado[key] = value;
+    }
+  }
+  return resultado;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -154,10 +158,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const dadosEspecificos = extrairDadosEspecificos(parsed.data);
 
     // Prepara o registro para inserção no banco
-    const registroFinal = {
+    const registroFinal: RegistroData = {
       tipo_registro: parsed.data.tipo_registro,
       autor: parsed.data.autor,
-      dados: dadosEspecificos, // Agora contém apenas os campos relevantes
+      dados: dadosEspecificos, // Agora é garantidamente Record<string, any>
       timestamp: parsed.data.timestamp || new Date().toISOString(),
       id_caso: parsed.data.id_caso,
       etapa: parsed.data.etapa,
