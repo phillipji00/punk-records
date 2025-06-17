@@ -15,7 +15,7 @@
     "paths": {
       "@/lib/*": ["lib/*"],
       "@/src/*": ["src/*"],
-      "@/types/*": ["types/*"]
+      "@/types/*": ["lib/types/*"]
     },
     "declaration": true,
     "declarationMap": true,
@@ -27,12 +27,15 @@
     "allowJs": true,
     "jsx": "preserve",
     "incremental": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false
   },
   "include": [
     "src/**/*",
     "lib/**/*",
-    "types/**/*"
+    "api/**/*"
   ],
   "exclude": [
     "node_modules",

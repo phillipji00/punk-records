@@ -1,9 +1,13 @@
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 
-let pool: Pool | undefined;
+let pool: Pool | null = null;
 
 export function getDbPool(): Pool {
   if (!pool) {
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is required');
+    }
+
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false },
@@ -17,15 +21,6 @@ export function getDbPool(): Pool {
   }
 
   return pool;
-}
-
-export async function initializeDatabase(): Promise<void> {
-  try {
-    await getDbPool().query('SELECT 1');
-  } catch (error) {
-    console.error('Erro ao inicializar banco de dados:', error);
-    throw error;
-  }
 }
 
 // Interface para o registro
@@ -46,15 +41,18 @@ async function executeQueryWithRetry(
   params: any[] = [], 
   maxRetries: number = 2
 ): Promise<any> {
-  let lastError;
+  let lastError: Error | undefined;
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const client = await pool.connect();
+    const dbPool = getDbPool();
+    let client: PoolClient | undefined;
+    
     try {
+      client = await dbPool.connect();
       const result = await client.query(query, params);
       return result;
     } catch (error) {
-      lastError = error;
+      lastError = error instanceof Error ? error : new Error('Unknown error');
       console.error(`Tentativa ${attempt + 1} falhou:`, error);
       
       // Se não for erro de timeout ou conexão, não tentar novamente
@@ -69,15 +67,17 @@ async function executeQueryWithRetry(
         await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
       }
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
   
-  throw lastError;
+  throw lastError || new Error('Query failed after all retries');
 }
 
 // Função para criar as tabelas se não existirem
-export async function initializeDatabase() {
+export async function initializeDatabase(): Promise<void> {
   const createTablesQuery = `
     -- Criar tabela de registros
     CREATE TABLE IF NOT EXISTS registros (
@@ -204,6 +204,9 @@ export async function insertRegistro(data: RegistroData): Promise<string> {
   
   try {
     const result = await executeQueryWithRetry(query, values);
+    if (!result.rows || result.rows.length === 0) {
+      throw new Error('Failed to insert registro: no id_registro returned');
+    }
     return result.rows[0].id_registro;
   } catch (error) {
     console.error('Erro ao inserir registro:', error);
@@ -221,7 +224,7 @@ export async function getRegistrosPorCaso(id_caso: string) {
   
   try {
     const result = await executeQueryWithRetry(query, [id_caso]);
-    return result.rows;
+    return result.rows || [];
   } catch (error) {
     console.error('Erro ao buscar registros por caso:', error);
     throw error;
@@ -234,7 +237,7 @@ export async function getRegistroPorId(id_registro: string) {
   
   try {
     const result = await executeQueryWithRetry(query, [id_registro]);
-    return result.rows[0] || null;
+    return result.rows?.[0] || null;
   } catch (error) {
     console.error('Erro ao buscar registro por ID:', error);
     throw error;
@@ -258,7 +261,7 @@ export async function getCasoStatus(idCaso: string) {
     let result = await executeQueryWithRetry(query, [idCaso]);
     
     // Se não encontrar, tenta buscar por alias
-    if (result.rowCount === 0) {
+    if (!result.rowCount || result.rowCount === 0) {
       query = `
         SELECT 
           c.id_caso,
@@ -274,7 +277,7 @@ export async function getCasoStatus(idCaso: string) {
       result = await executeQueryWithRetry(query, [idCaso]);
     }
     
-    return result.rows[0] || null;
+    return result.rows?.[0] || null;
   } catch (error) {
     console.error('Erro ao buscar status do caso:', error);
     throw error;
@@ -305,7 +308,7 @@ export async function upsertCasoStatus(
   
   try {
     const result = await executeQueryWithRetry(query, values);
-    return result.rows[0];
+    return result.rows?.[0] || null;
   } catch (error) {
     console.error('Erro ao atualizar/criar status do caso:', error);
     throw error;
@@ -323,12 +326,9 @@ export async function getCasosRecentes(limit: number = 10) {
   
   try {
     const result = await executeQueryWithRetry(query, [limit]);
-    return result.rows;
+    return result.rows || [];
   } catch (error) {
     console.error('Erro ao buscar casos recentes:', error);
     throw error;
   }
 }
-
-// Exporta o pool para uso direto se necessário
-export default pool;

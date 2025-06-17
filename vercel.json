@@ -9,5 +9,7 @@
     "api/**": {
       "maxDuration": 30
     }
-  }
+  },
+  "buildCommand": "echo 'Build skipped for Vercel API routes'",
+  "framework": null
 }
