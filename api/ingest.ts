@@ -166,7 +166,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       id_caso: parsed.data.id_caso,
       etapa: parsed.data.etapa,
       especialista: parsed.data.especialista,
-      probabilidade: parsed.data.probabilidade || null
+      probabilidade: parsed.data.probabilidade // Remove o || null, deixa undefined se não existir
     };
 
     // Log do registro final

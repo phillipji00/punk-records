@@ -427,3 +427,61 @@
     }
   }
 }
+{
+  "/api/promover": {
+    "post": {
+      "operationId": "promoverCaso",
+      "summary": "Promover Caso",
+      "description": "Registra ou atualiza um caso investigativo no sistema, atribuindo etapa, especialista e probabilidade.",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "id_caso",
+                "etapa",
+                "especialista"
+              ],
+              "properties": {
+                "id_caso": {
+                  "type": "string",
+                  "description": "Identificador do caso (ID t\u00e9cnico do sistema)"
+                },
+                "etapa": {
+                  "type": "string",
+                  "description": "Etapa inicial atribu\u00edda"
+                },
+                "especialista": {
+                  "type": "string",
+                  "description": "Especialista respons\u00e1vel inicial"
+                },
+                "probabilidade": {
+                  "type": "number",
+                  "description": "Valor de confian\u00e7a inicial (opcional)",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Caso promovido com sucesso"
+        },
+        "201": {
+          "description": "Novo caso criado com sucesso"
+        },
+        "400": {
+          "description": "Erro de valida\u00e7\u00e3o"
+        },
+        "500": {
+          "description": "Erro interno do servidor"
+        }
+      }
+    }
+  }
+}

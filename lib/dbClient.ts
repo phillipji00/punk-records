@@ -1,22 +1,23 @@
 import { Pool } from 'pg';
+import { sql } from '@vercel/postgres';
 
 // Configuração do pool de conexões para o Neon
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
+  ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
-  },
+  } : undefined,
   // Configurações otimizadas para serverless
   max: 1,
   idleTimeoutMillis: 10000,
   connectionTimeoutMillis: 10000
 });
 
-// Interface para o registro - mantida igual pois o banco ainda usa 'dados'
+// Interface para o registro
 export interface RegistroData {
   tipo_registro: 'hipotese' | 'evidencia' | 'perfil_personagem' | 'entrada_timeline' | 'registro_misc';
   autor: string;
-  dados: Record<string, any>; // Continua sendo usado internamente
+  dados: Record<string, any>;
   timestamp?: string;
   id_caso: string;
   etapa: string;
@@ -64,6 +65,49 @@ export async function initializeDatabase() {
       
       CREATE INDEX IF NOT EXISTS idx_casos_id_caso ON casos(id_caso);
     `);
+  } catch (error) {
+    console.error('Erro ao inicializar banco de dados:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Função unificada para promover caso (usando pool para consistência)
+export async function promoverCaso(
+  id_caso: string,
+  etapa: string,
+  especialista: string,
+  probabilidade: number | null = null
+): Promise<'criado' | 'atualizado'> {
+  const client = await pool.connect();
+  try {
+    const existingQuery = 'SELECT id FROM casos WHERE id_caso = $1 LIMIT 1';
+    const existing = await client.query(existingQuery, [id_caso]);
+
+    if (existing.rowCount > 0) {
+      const updateQuery = `
+        UPDATE casos
+        SET etapa = $1,
+            especialista = $2,
+            probabilidade = $3,
+            timestamp = NOW(),
+            updated_at = NOW()
+        WHERE id_caso = $4
+      `;
+      await client.query(updateQuery, [etapa, especialista, probabilidade, id_caso]);
+      return 'atualizado';
+    } else {
+      const insertQuery = `
+        INSERT INTO casos (id_caso, etapa, especialista, probabilidade)
+        VALUES ($1, $2, $3, $4)
+      `;
+      await client.query(insertQuery, [id_caso, etapa, especialista, probabilidade]);
+      return 'criado';
+    }
+  } catch (error) {
+    console.error('Erro ao promover caso:', error);
+    throw error;
   } finally {
     client.release();
   }
@@ -95,6 +139,9 @@ export async function insertRegistro(data: RegistroData): Promise<string> {
     
     const result = await client.query(query, values);
     return result.rows[0].id_registro;
+  } catch (error) {
+    console.error('Erro ao inserir registro:', error);
+    throw error;
   } finally {
     client.release();
   }
@@ -111,6 +158,9 @@ export async function getRegistrosPorCaso(id_caso: string) {
     `;
     const result = await client.query(query, [id_caso]);
     return result.rows;
+  } catch (error) {
+    console.error('Erro ao buscar registros por caso:', error);
+    throw error;
   } finally {
     client.release();
   }
@@ -123,6 +173,9 @@ export async function getRegistroPorId(id_registro: string) {
     const query = `SELECT * FROM registros WHERE id_registro = $1`;
     const result = await client.query(query, [id_registro]);
     return result.rows[0] || null;
+  } catch (error) {
+    console.error('Erro ao buscar registro por ID:', error);
+    throw error;
   } finally {
     client.release();
   }
@@ -144,6 +197,9 @@ export async function getCasoStatus(idCaso: string) {
     `;
     const result = await client.query(query, [idCaso]);
     return result.rows[0] || null;
+  } catch (error) {
+    console.error('Erro ao buscar status do caso:', error);
+    throw error;
   } finally {
     client.release();
   }
@@ -174,6 +230,9 @@ export async function upsertCasoStatus(
     const values = [idCaso, etapa, especialista, probabilidade || null];
     const result = await client.query(query, values);
     return result.rows[0];
+  } catch (error) {
+    console.error('Erro ao atualizar/criar status do caso:', error);
+    throw error;
   } finally {
     client.release();
   }
