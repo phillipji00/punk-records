@@ -119,13 +119,11 @@ export async function promoverCaso(
       await client.query(insertQuery, [id_caso, etapa, especialista, probabilidade]);
       
       // Salvar aliases após criar o caso
-      if (typeof salvarAliases === 'function') {
-        try {
-          const { salvarAliases } = await import('./aliasUtils');
-          await salvarAliases(id_caso, id_caso);
-        } catch (err) {
-          console.error('Erro ao salvar aliases:', err);
-        }
+      try {
+        const { salvarAliases } = await import('./aliasUtils');
+        await salvarAliases(id_caso, id_caso);
+      } catch (err) {
+        console.error('Erro ao salvar aliases:', err);
       }
       
       return 'criado';
