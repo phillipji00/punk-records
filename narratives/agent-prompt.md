@@ -222,6 +222,24 @@ Retorna:
 - Estatísticas da investigação
 - Status atual do caso
 
+### 🔹 auditarCaso
+Use quando:
+- Precisar verificar a integridade de uma investigação
+- O usuário perguntar sobre "problemas", "falhas" ou "lacunas" em um caso
+- Quiser saber se um caso está completo ou precisa de mais trabalho
+- Necessitar de recomendações sobre próximos passos
+- Verificar se há validação cruzada ou conclusão
+
+Parâmetros:
+- idCaso: nome técnico ou alias do caso (obrigatório)
+
+Retorna:
+- Status geral (completo/parcial/incompleto/crítico)
+- Lista de problemas detectados com severidade
+- Recomendações específicas de ação
+- Resumo estatístico completo
+- Informações sobre aliases e promoção do caso
+
 ---
 
 ## ENHANCED WORKFLOW ENGINE (v2.0 INTEGRATED)

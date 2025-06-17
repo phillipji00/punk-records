@@ -638,6 +638,93 @@
           }
         }
       }
+    },
+    "/api/auditoria": {
+      "get": {
+        "operationId": "auditarCaso",
+        "summary": "Auditoria profunda de integridade investigativa",
+        "description": "Analisa a integridade, consistência e cobertura de um caso, identificando lacunas, problemas estruturais e fornecendo recomendações.",
+        "parameters": [
+          {
+            "name": "idCaso",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Nome técnico ou alias do caso a ser auditado"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultado da auditoria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id_caso": { "type": "string" },
+                    "status": { 
+                      "type": "string",
+                      "enum": ["completo", "parcial", "incompleto", "critico"]
+                    },
+                    "caso_promovido": { "type": "boolean" },
+                    "aliases": { 
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "problemas_detectados": { 
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "problemas_detalhados": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "tipo": { 
+                            "type": "string",
+                            "enum": ["critico", "aviso", "info"]
+                          },
+                          "descricao": { "type": "string" },
+                          "recomendacao": { "type": "string" }
+                        }
+                      }
+                    },
+                    "resumo": {
+                      "type": "object",
+                      "properties": {
+                        "registros_total": { "type": "integer" },
+                        "hipoteses": { "type": "integer" },
+                        "evidencias": { "type": "integer" },
+                        "timeline": { "type": "integer" },
+                        "perfis": { "type": "integer" },
+                        "outros": { "type": "integer" },
+                        "conclusao": { "type": "boolean" },
+                        "validacao_cruzada": { "type": "boolean" },
+                        "autores_unicos": { "type": "integer" },
+                        "especialistas_unicos": { "type": "integer" },
+                        "cobertura_probabilidade": { "type": "number" }
+                      }
+                    },
+                    "caso_info": {
+                      "type": "object",
+                      "properties": {
+                        "etapa_atual": { "type": "string" },
+                        "especialista_responsavel": { "type": "string" },
+                        "probabilidade_geral": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Caso não encontrado"
+          }
+        }
+      }
     }
   }
 }
