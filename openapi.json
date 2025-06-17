@@ -424,62 +424,145 @@
           }
         }
       }
-    }
-  }
-}
-{
-  "/api/promover": {
-    "post": {
-      "operationId": "promoverCaso",
-      "summary": "Promover Caso",
-      "description": "Registra ou atualiza um caso investigativo no sistema, atribuindo etapa, especialista e probabilidade.",
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "required": [
-                "id_caso",
-                "etapa",
-                "especialista"
-              ],
-              "properties": {
-                "id_caso": {
-                  "type": "string",
-                  "description": "Identificador do caso (ID t\u00e9cnico do sistema)"
-                },
-                "etapa": {
-                  "type": "string",
-                  "description": "Etapa inicial atribu\u00edda"
-                },
-                "especialista": {
-                  "type": "string",
-                  "description": "Especialista respons\u00e1vel inicial"
-                },
-                "probabilidade": {
-                  "type": "number",
-                  "description": "Valor de confian\u00e7a inicial (opcional)",
-                  "minimum": 0,
-                  "maximum": 1
+    },
+    "/api/promover": {
+      "post": {
+        "operationId": "promoverCaso",
+        "summary": "Promover Caso",
+        "description": "Registra ou atualiza um caso investigativo no sistema, atribuindo etapa, especialista e probabilidade.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id_caso",
+                  "etapa",
+                  "especialista"
+                ],
+                "properties": {
+                  "id_caso": {
+                    "type": "string",
+                    "description": "Identificador do caso (ID técnico do sistema)"
+                  },
+                  "etapa": {
+                    "type": "string",
+                    "description": "Etapa inicial atribuída"
+                  },
+                  "especialista": {
+                    "type": "string",
+                    "description": "Especialista responsável inicial"
+                  },
+                  "probabilidade": {
+                    "type": "number",
+                    "description": "Valor de confiança inicial (opcional)",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
                 }
               }
             }
           }
+        },
+        "responses": {
+          "200": {
+            "description": "Caso promovido com sucesso"
+          },
+          "201": {
+            "description": "Novo caso criado com sucesso"
+          },
+          "400": {
+            "description": "Erro de validação"
+          },
+          "500": {
+            "description": "Erro interno do servidor"
+          }
         }
-      },
-      "responses": {
-        "200": {
-          "description": "Caso promovido com sucesso"
-        },
-        "201": {
-          "description": "Novo caso criado com sucesso"
-        },
-        "400": {
-          "description": "Erro de valida\u00e7\u00e3o"
-        },
-        "500": {
-          "description": "Erro interno do servidor"
+      }
+    },
+    "/api/search": {
+      "get": {
+        "operationId": "buscarRegistros",
+        "summary": "Busca textual em registros investigativos",
+        "description": "Busca qualquer ocorrência textual nos campos de dados de registros. Suporta filtros adicionais.",
+        "parameters": [
+          {
+            "name": "termo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Palavra ou frase a ser procurada"
+          },
+          {
+            "name": "id_caso",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filtra por caso específico"
+          },
+          {
+            "name": "tipo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filtra por tipo_registro"
+          },
+          {
+            "name": "autor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filtra por autor"
+          },
+          {
+            "name": "depois",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "ISO 8601: Filtra registros após essa data"
+          },
+          {
+            "name": "antes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "ISO 8601: Filtra registros antes dessa data"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultados encontrados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "resultados": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
