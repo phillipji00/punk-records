@@ -7,7 +7,7 @@ const pool = new Pool({
     rejectUnauthorized: false
   } : undefined,
   // Configurações otimizadas para serverless com timeouts mais longos
-  max: 1,
+  max: 5,
   idleTimeoutMillis: 30000,  // Aumentado de 10s para 30s
   connectionTimeoutMillis: 30000,  // Aumentado de 10s para 30s
   query_timeout: 25000,  // Timeout para queries individuais
