@@ -1,12 +1,23 @@
+import { NextApiRequest, NextApiResponse } from 'next';
 import pool from '../lib/dbClient';
 
-export default async function handler(req, res) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   try {
     const client = await pool.connect();
     await client.query('SELECT 1');
     client.release();
-    return res.json({ status: 'ok', timestamp: new Date() });
+    
+    return res.status(200).json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString() 
+    });
   } catch (error) {
-    return res.status(503).json({ status: 'sleeping' });
+    return res.status(503).json({ 
+      status: 'sleeping',
+      error: error instanceof Error ? error.message : 'Connection failed'
+    });
   }
 }
