@@ -19,14 +19,14 @@ interface ErrorResponse {
 // Handler principal
 export default async function handler(
   req: VercelRequest,
-  res: VercelResponse<StatusResponse | ErrorResponse>
+  res: VercelResponse
 ) {
   // Validação do método HTTP
   if (req.method !== 'GET') {
     return res.status(405).json({
       erro: 'Método não permitido',
       detalhes: 'Este endpoint aceita apenas requisições GET'
-    });
+    } as ErrorResponse);
   }
 
   try {
@@ -41,7 +41,7 @@ export default async function handler(
       return res.status(400).json({
         erro: 'Parâmetro obrigatório ausente',
         detalhes: 'É necessário fornecer o parâmetro idCaso na query string'
-      });
+      } as ErrorResponse);
     }
 
     // Garante que idCaso é uma string
@@ -52,7 +52,7 @@ export default async function handler(
       return res.status(400).json({
         erro: 'Parâmetro inválido',
         detalhes: 'O parâmetro idCaso não pode estar vazio'
-      });
+      } as ErrorResponse);
     }
 
     // Busca o status do caso no banco
@@ -63,7 +63,7 @@ export default async function handler(
       return res.status(404).json({
         erro: 'Caso não encontrado',
         detalhes: `Nenhum caso encontrado com o id: ${idCasoString}`
-      });
+      } as ErrorResponse);
     }
 
     // Formata a resposta
@@ -86,7 +86,7 @@ export default async function handler(
     return res.status(500).json({
       erro: 'Erro interno do servidor',
       detalhes: 'Ocorreu um erro ao consultar o status do caso. Por favor, tente novamente.'
-    });
+    } as ErrorResponse);
   }
 }
 
