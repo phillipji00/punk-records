@@ -1,252 +1,78 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.0.0",
   "info": {
-    "title": "Syndicate GPT Actions",
-    "version": "v3.2"
+    "title": "Syndicate API",
+    "version": "v3.3"
   },
-  "servers": [
-    {
-      "url": "https://vault-beta-jet.vercel.app"
-    }
-  ],
   "paths": {
-    "/api/refine": {
+    "/api/ingest": {
       "post": {
-        "operationId": "refineAction",
-        "summary": "Refine",
-        "description": "Gera perguntas de refinamento para an\u00e1lises com baixa confian\u00e7a.",
+        "operationId": "SalvarRegistro",
+        "summary": "SalvarRegistro",
+        "description": "Persiste registros narrativos no sistema Syndicate.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "specialist": {
-                    "type": "string"
-                  },
-                  "context": {
-                    "type": "string"
-                  },
-                  "hypothesis": {
-                    "type": "string"
-                  },
-                  "evidence": {
-                    "type": "string"
-                  },
-                  "missingElement": {
-                    "type": "string"
-                  },
-                  "currentConfidence": {
-                    "type": "number"
-                  },
-                  "useFullRefinement": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "specialist",
-                  "context"
-                ]
+                "$ref": "#/components/schemas/RegistroBase"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "Registro criado com sucesso"
           }
         }
       }
-    },
-    "/api/analisar": {
-      "post": {
-        "operationId": "analisarAction",
-        "summary": "Analisar",
-        "description": "Solicita uma an\u00e1lise especializada de um registro investigativo.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "specialist": {
-                    "type": "string"
-                  },
-                  "context": {
-                    "type": "object"
-                  }
-                },
-                "required": [
-                  "specialist",
-                  "context"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/review": {
-      "post": {
-        "operationId": "reviewAction",
-        "summary": "Review",
-        "description": "Executa valida\u00e7\u00e3o cruzada entre especialistas.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "reviewer": {
-                    "type": "string"
-                  },
-                  "originalAnalysis": {
-                    "type": "object"
-                  },
-                  "context": {
-                    "type": "object"
-                  }
-                },
-                "required": [
-                  "reviewer",
-                  "originalAnalysis",
-                  "context"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/pipeline": {
-      "post": {
-        "operationId": "pipelineAction",
-        "summary": "Avan\u00e7arPipeline",
-        "description": "Controla a progress\u00e3o do pipeline investigativo.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "currentStage": {
-                    "type": "string"
-                  },
-                  "action": {
-                    "type": "string"
-                  },
-                  "context": {
-                    "type": "object"
-                  }
-                },
-                "required": [
-                  "currentStage",
-                  "context"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/retry": {
-      "post": {
-        "operationId": "retryAction",
-        "summary": "Retry",
-        "description": "Ativa protocolo de recupera\u00e7\u00e3o quando uma etapa falha.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "etapaAtual": {
-                    "type": "string"
-                  },
-                  "tipoErro": {
-                    "type": "string"
-                  },
-                  "especialista": {
-                    "type": "string"
-                  },
-                  "tentativaAtual": {
-                    "type": "integer"
-                  },
-                  "confiancaAtual": {
-                    "type": "number"
-                  },
-                  "tentativasGlobais": {
-                    "type": "integer"
-                  },
-                  "contextoErro": {
-                    "type": "object"
-                  }
-                },
-                "required": [
-                  "etapaAtual",
-                  "tipoErro",
-                  "tentativaAtual"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/obi": {
-      "post": {
-        "operationId": "obiAction",
-        "summary": "Obi",
-        "description": "Consulta a decis\u00e3o estrat\u00e9gica do Capit\u00e3o Obi.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "context": {
-                    "type": "object"
-                  },
-                  "includeDiagnostics": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "context"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
+    }
+  },
+  "components": {
+    "schemas": {
+      "RegistroBase": {
+        "type": "object",
+        "required": [
+          "tipo_registro",
+          "autor",
+          "id_caso",
+          "etapa",
+          "especialista",
+          "dados"
+        ],
+        "properties": {
+          "tipo_registro": {
+            "type": "string",
+            "enum": [
+              "hipotese",
+              "evidencia",
+              "perfil_personagem",
+              "entrada_timeline",
+              "registro_misc"
+            ]
+          },
+          "autor": {
+            "type": "string"
+          },
+          "id_caso": {
+            "type": "string"
+          },
+          "etapa": {
+            "type": "string"
+          },
+          "especialista": {
+            "type": "string"
+          },
+          "dados": {
+            "type": "object",
+            "description": "Objeto obrigat\u00f3rio com os campos espec\u00edficos do tipo_registro. Ex: 'hipotese', 'justificativa', 'conteudo', etc."
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "probabilidade": {
+            "type": "number"
           }
         }
       }
