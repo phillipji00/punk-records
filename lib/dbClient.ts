@@ -12,11 +12,11 @@ const pool = new Pool({
   connectionTimeoutMillis: 10000
 });
 
-// Interface para o registro
+// Interface para o registro - mantida igual pois o banco ainda usa 'dados'
 export interface RegistroData {
   tipo_registro: 'hipotese' | 'evidencia' | 'perfil_personagem' | 'entrada_timeline' | 'registro_misc';
   autor: string;
-  dados: Record<string, any>;
+  dados: Record<string, any>; // Continua sendo usado internamente
   timestamp?: string;
   id_caso: string;
   etapa: string;

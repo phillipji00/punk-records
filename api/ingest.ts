@@ -2,8 +2,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 import { insertRegistro, initializeDatabase } from '../lib/dbClient';
 
-// Schema base genérico de registro
-const RegistroSchemaBase = z.object({
+// Schema unificado com todos os campos possíveis no root
+// Necessário porque o GPT não consegue lidar com objetos genéricos/dinâmicos
+const RegistroSchemaUnificado = z.object({
+  // Campos obrigatórios
   tipo_registro: z.enum([
     'hipotese',
     'evidencia',
@@ -12,100 +14,177 @@ const RegistroSchemaBase = z.object({
     'registro_misc'
   ]),
   autor: z.string().min(1, "Autor é obrigatório"),
-  dados: z.record(z.any()),
-  timestamp: z.string().optional(),
   id_caso: z.string().min(1, "id_caso é obrigatório"),
   etapa: z.string().min(1, "etapa é obrigatória"),
   especialista: z.string().min(1, "especialista é obrigatório"),
-  probabilidade: z.number().min(0).max(1).optional()
+  
+  // Campos opcionais
+  timestamp: z.string().optional(),
+  probabilidade: z.number().min(0).max(1).optional(),
+  
+  // Campos específicos de hipótese (opcionais)
+  hipotese: z.string().min(5).optional(),
+  justificativa: z.string().min(5).optional(),
+  acoes_recomendadas: z.array(z.string()).optional(),
+  nivel_confianca: z.number().min(0).max(1).optional(),
+  
+  // Campos específicos de evidência (opcionais)
+  descricao: z.string().min(5).optional(),
+  origem: z.string().optional(),
+  confiabilidade: z.number().min(0).max(1).optional(),
+  
+  // Campos específicos de perfil_personagem (opcionais)
+  nome: z.string().min(2).optional(),
+  motivacoes: z.string().optional(),
+  riscos: z.array(z.string()).optional(),
+  
+  // Campos específicos de entrada_timeline (opcionais)
+  horario: z.string().optional(),
+  
+  // Campos específicos de registro_misc (opcionais)
+  conteudo: z.string().min(2).optional()
 });
 
-// Schemas específicos por tipo_registro
-const SchemaPorTipo = {
-  hipotese: z.object({
-    hipotese: z.string().min(5, "Hipótese deve conter uma descrição textual"),
-    justificativa: z.string().min(5).optional(),
-    acoes_recomendadas: z.array(z.string()).optional(),
-    nivel_confianca: z.number().min(0).max(1).optional()
-  }),
-  evidencia: z.object({
-    descricao: z.string().min(5),
-    origem: z.string().optional(),
-    confiabilidade: z.number().min(0).max(1).optional()
-  }),
-  perfil_personagem: z.object({
-    nome: z.string().min(2),
-    motivacoes: z.string().optional(),
-    riscos: z.array(z.string()).optional()
-  }),
-  entrada_timeline: z.object({
-    descricao: z.string().min(3),
-    horario: z.string().optional()
-  }),
-  registro_misc: z.object({
-    conteudo: z.string().min(2)
-  })
-};
+// Função para validar campos específicos por tipo
+function validarCamposEspecificos(data: z.infer<typeof RegistroSchemaUnificado>) {
+  const errors: string[] = [];
+  
+  switch (data.tipo_registro) {
+    case 'hipotese':
+      if (!data.hipotese) {
+        errors.push("Campo 'hipotese' é obrigatório para tipo_registro 'hipotese'");
+      }
+      break;
+      
+    case 'evidencia':
+      if (!data.descricao) {
+        errors.push("Campo 'descricao' é obrigatório para tipo_registro 'evidencia'");
+      }
+      break;
+      
+    case 'perfil_personagem':
+      if (!data.nome) {
+        errors.push("Campo 'nome' é obrigatório para tipo_registro 'perfil_personagem'");
+      }
+      break;
+      
+    case 'entrada_timeline':
+      if (!data.descricao) {
+        errors.push("Campo 'descricao' é obrigatório para tipo_registro 'entrada_timeline'");
+      }
+      break;
+      
+    case 'registro_misc':
+      if (!data.conteudo) {
+        errors.push("Campo 'conteudo' é obrigatório para tipo_registro 'registro_misc'");
+      }
+      break;
+  }
+  
+  return errors;
+}
+
+// Função para extrair apenas os campos relevantes para cada tipo
+function extrairDadosEspecificos(data: z.infer<typeof RegistroSchemaUnificado>) {
+  const camposBase = {
+    hipotese: data.hipotese,
+    justificativa: data.justificativa,
+    acoes_recomendadas: data.acoes_recomendadas,
+    nivel_confianca: data.nivel_confianca,
+    descricao: data.descricao,
+    origem: data.origem,
+    confiabilidade: data.confiabilidade,
+    nome: data.nome,
+    motivacoes: data.motivacoes,
+    riscos: data.riscos,
+    horario: data.horario,
+    conteudo: data.conteudo
+  };
+  
+  // Remove campos undefined
+  return Object.fromEntries(
+    Object.entries(camposBase).filter(([_, v]) => v !== undefined)
+  );
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // === DEBUG LOGS ===
-  console.log('=== HEADERS ===', JSON.stringify(req.headers));
-  console.log('=== BODY TYPE ===', typeof req.body);
-  console.log('=== BODY RAW ===', JSON.stringify(req.body));
+  console.log('=== INGEST REQUEST ===');
+  console.log('Method:', req.method);
+  console.log('Headers:', JSON.stringify(req.headers));
+  console.log('Body type:', typeof req.body);
+  console.log('Body:', JSON.stringify(req.body));
   
   if (req.method !== 'POST') {
-    return res.status(405).json({ erro: 'Método não permitido', permitido: 'POST' });
+    return res.status(405).json({ 
+      erro: 'Método não permitido', 
+      permitido: 'POST' 
+    });
   }
 
   if (!req.body) {
-    return res.status(400).json({ erro: 'Corpo da requisição vazio', mensagem: 'É necessário enviar dados no corpo da requisição' });
+    return res.status(400).json({ 
+      erro: 'Corpo da requisição vazio', 
+      mensagem: 'É necessário enviar dados no corpo da requisição' 
+    });
   }
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
-    // Validação inicial
-    const parsedBase = RegistroSchemaBase.safeParse(body);
-    if (!parsedBase.success) {
+    // Validação do schema unificado
+    const parsed = RegistroSchemaUnificado.safeParse(body);
+    if (!parsed.success) {
       return res.status(400).json({
-        erro: "Validação falhou (campos principais)",
-        detalhes: parsedBase.error.flatten()
+        erro: "Validação falhou",
+        detalhes: parsed.error.flatten()
       });
     }
 
-    // Validação dinâmica de dados
-    const tipo = body.tipo_registro;
-    if (!(tipo in SchemaPorTipo)) {
-      return res.status(400).json({ erro: "Tipo de registro não suportado" });
-    }
-    const schemaDados = SchemaPorTipo[tipo as keyof typeof SchemaPorTipo];
-
-    const parsedDados = schemaDados.safeParse(body.dados);
-    if (!parsedDados.success) {
+    // Validação de campos específicos por tipo
+    const errosEspecificos = validarCamposEspecificos(parsed.data);
+    if (errosEspecificos.length > 0) {
       return res.status(400).json({
-        erro: "Validação específica falhou",
-        mensagem: parsedDados.error.errors[0]?.message || "Erro no campo 'dados'"
+        erro: "Campos obrigatórios faltando",
+        mensagens: errosEspecificos
       });
     }
 
-    // Insere no banco
+    // Extrai apenas os dados relevantes para o campo 'dados'
+    const dadosEspecificos = extrairDadosEspecificos(parsed.data);
+
+    // Prepara o registro para inserção no banco
     const registroFinal = {
-      ...parsedBase.data,
-      dados: parsedDados.data,
-      timestamp: parsedBase.data.timestamp || new Date().toISOString()
+      tipo_registro: parsed.data.tipo_registro,
+      autor: parsed.data.autor,
+      dados: dadosEspecificos, // Agora contém apenas os campos relevantes
+      timestamp: parsed.data.timestamp || new Date().toISOString(),
+      id_caso: parsed.data.id_caso,
+      etapa: parsed.data.etapa,
+      especialista: parsed.data.especialista,
+      probabilidade: parsed.data.probabilidade || null
     };
 
+    // Log do registro final
+    console.log('Registro a ser inserido:', JSON.stringify(registroFinal));
+
+    // Insere no banco
     await initializeDatabase();
     const id_registro = await insertRegistro(registroFinal);
 
     return res.status(200).json({
       status: "created",
       id_registro,
-      recebido_em: registroFinal.timestamp
+      tipo_registro: registroFinal.tipo_registro,
+      recebido_em: registroFinal.timestamp,
+      mensagem: `${registroFinal.tipo_registro} registrado com sucesso`
     });
 
   } catch (err) {
     console.error("Erro ao processar ingest:", err);
-    return res.status(500).json({ erro: "Erro interno no servidor", detalhes: err instanceof Error ? err.message : String(err) });
+    return res.status(500).json({ 
+      erro: "Erro interno no servidor", 
+      detalhes: err instanceof Error ? err.message : String(err) 
+    });
   }
 }
