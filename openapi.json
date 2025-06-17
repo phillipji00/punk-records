@@ -1,0 +1,255 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Syndicate GPT Actions",
+    "version": "v3.2"
+  },
+  "servers": [
+    {
+      "url": "https://vault-beta-jet.vercel.app"
+    }
+  ],
+  "paths": {
+    "/api/refine": {
+      "post": {
+        "operationId": "refineAction",
+        "summary": "Refine",
+        "description": "Gera perguntas de refinamento para an\u00e1lises com baixa confian\u00e7a.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "specialist": {
+                    "type": "string"
+                  },
+                  "context": {
+                    "type": "string"
+                  },
+                  "hypothesis": {
+                    "type": "string"
+                  },
+                  "evidence": {
+                    "type": "string"
+                  },
+                  "missingElement": {
+                    "type": "string"
+                  },
+                  "currentConfidence": {
+                    "type": "number"
+                  },
+                  "useFullRefinement": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "specialist",
+                  "context"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/analisar": {
+      "post": {
+        "operationId": "analisarAction",
+        "summary": "Analisar",
+        "description": "Solicita uma an\u00e1lise especializada de um registro investigativo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "specialist": {
+                    "type": "string"
+                  },
+                  "context": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "specialist",
+                  "context"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/review": {
+      "post": {
+        "operationId": "reviewAction",
+        "summary": "Review",
+        "description": "Executa valida\u00e7\u00e3o cruzada entre especialistas.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reviewer": {
+                    "type": "string"
+                  },
+                  "originalAnalysis": {
+                    "type": "object"
+                  },
+                  "context": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "reviewer",
+                  "originalAnalysis",
+                  "context"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/pipeline": {
+      "post": {
+        "operationId": "pipelineAction",
+        "summary": "Avan\u00e7arPipeline",
+        "description": "Controla a progress\u00e3o do pipeline investigativo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentStage": {
+                    "type": "string"
+                  },
+                  "action": {
+                    "type": "string"
+                  },
+                  "context": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "currentStage",
+                  "context"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/retry": {
+      "post": {
+        "operationId": "retryAction",
+        "summary": "Retry",
+        "description": "Ativa protocolo de recupera\u00e7\u00e3o quando uma etapa falha.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "etapaAtual": {
+                    "type": "string"
+                  },
+                  "tipoErro": {
+                    "type": "string"
+                  },
+                  "especialista": {
+                    "type": "string"
+                  },
+                  "tentativaAtual": {
+                    "type": "integer"
+                  },
+                  "confiancaAtual": {
+                    "type": "number"
+                  },
+                  "tentativasGlobais": {
+                    "type": "integer"
+                  },
+                  "contextoErro": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "etapaAtual",
+                  "tipoErro",
+                  "tentativaAtual"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/obi": {
+      "post": {
+        "operationId": "obiAction",
+        "summary": "Obi",
+        "description": "Consulta a decis\u00e3o estrat\u00e9gica do Capit\u00e3o Obi.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "context": {
+                    "type": "object"
+                  },
+                  "includeDiagnostics": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "context"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  }
+}
