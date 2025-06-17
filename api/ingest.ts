@@ -1,4 +1,3 @@
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 import { insertRegistro, initializeDatabase } from '../lib/dbClient';
@@ -48,9 +47,12 @@ const SchemaPorTipo = {
   })
 };
 
-
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // === DEBUG LOGS ===
+  console.log('=== HEADERS ===', JSON.stringify(req.headers));
+  console.log('=== BODY TYPE ===', typeof req.body);
+  console.log('=== BODY RAW ===', JSON.stringify(req.body));
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ erro: 'Método não permitido', permitido: 'POST' });
   }
@@ -72,11 +74,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Validação dinâmica de dados
-const tipo = body.tipo_registro;
-if (!(tipo in SchemaPorTipo)) {
-  return res.status(400).json({ erro: "Tipo de registro não suportado" });
-}
-const schemaDados = SchemaPorTipo[tipo as keyof typeof SchemaPorTipo];
+    const tipo = body.tipo_registro;
+    if (!(tipo in SchemaPorTipo)) {
+      return res.status(400).json({ erro: "Tipo de registro não suportado" });
+    }
+    const schemaDados = SchemaPorTipo[tipo as keyof typeof SchemaPorTipo];
 
     const parsedDados = schemaDados.safeParse(body.dados);
     if (!parsedDados.success) {
