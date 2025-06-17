@@ -123,8 +123,10 @@ export default async function handler(
   let client;
   
   try {
-    client = await pool.connect();
-    await initializeDatabase();
+  await initializeDatabase(); // Primeiro: garante que o banco está acordado
+
+  const pool = getDbPool(); // Garante pool tipado corretamente
+
 
     const idCaso = req.query.idCaso;
 

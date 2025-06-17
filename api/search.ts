@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import pool, { initializeDatabase } from '../lib/dbClient';
+import { getDbPool, initializeDatabase } from '../lib/dbClient';
 
 export default async function handler(
   req: NextApiRequest,
@@ -15,11 +15,9 @@ export default async function handler(
   let client;
 
   try {
-    // Tentar conectar com timeout maior
-    client = await pool.connect();
-    
-    // Inicializar banco se necessário
-    await initializeDatabase();
+  await initializeDatabase(); // Primeiro: garante que o banco está acordado
+
+  const pool = getDbPool(); // Garante pool tipado corretamente
 
     // Extrair parâmetros da query
     const { 

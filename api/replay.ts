@@ -84,11 +84,10 @@ export default async function handler(
     });
   }
 
-  const client = await pool.connect();
-
   try {
-    // Inicializar banco se necessário
-    await initializeDatabase();
+    await initializeDatabase();           // ← Acorda o banco
+    const pool = getDbPool();             // ← Cria pool seguro
+
 
     // Extrair idCaso
     const { idCaso } = req.query;
