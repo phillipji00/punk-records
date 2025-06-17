@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initializeDatabase, promoverCaso } from '../../lib/dbClient';
+import { initializeDatabase, promoverCaso } from '../lib/dbClient';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
