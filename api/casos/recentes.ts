@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initializeDatabase } from '../../lib/dbClient';
-import { sql } from '@vercel/postgres';
+import { initializeDatabase, getCasosRecentes } from '../lib/dbClient';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -13,15 +12,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     await initializeDatabase();
 
-    const result = await sql`
-      SELECT id_caso, etapa, especialista, probabilidade, timestamp
-      FROM casos
-      ORDER BY timestamp DESC
-      LIMIT 10
-    `;
+    const casos = await getCasosRecentes(10);
 
     return res.status(200).json({
-      casos: result.rows
+      casos: casos
     });
   } catch (error) {
     console.error('Erro ao consultar casos recentes:', error);

@@ -1,9 +1,9 @@
-import { sql } from '@vercel/postgres';
+import pool from './dbClient';
 
 export function generateAliases(nomeNatural: string): string[] {
   const normalized = nomeNatural
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '') // remove acentos
+    .replace(/[\u0300-\u036f]/g, '') // remove acentos corretamente
     .toLowerCase();
 
   const palavras = normalized.split(/\s+/);
@@ -38,16 +38,22 @@ export function generateAliases(nomeNatural: string): string[] {
 
 export async function salvarAliases(id_caso: string, nomeNatural: string) {
   const aliases = generateAliases(nomeNatural);
+  const client = await pool.connect();
 
-  for (const alias of aliases) {
-    try {
-      await sql`
-        INSERT INTO caso_aliases (id_caso, alias)
-        VALUES (${id_caso}, ${alias})
-        ON CONFLICT (id_caso, alias) DO NOTHING
-      `;
-    } catch (err) {
-      console.error('Erro ao salvar alias:', alias, err);
+  try {
+    for (const alias of aliases) {
+      try {
+        await client.query(
+          `INSERT INTO caso_aliases (id_caso, alias)
+           VALUES ($1, $2)
+           ON CONFLICT (id_caso, alias) DO NOTHING`,
+          [id_caso, alias]
+        );
+      } catch (err) {
+        console.error('Erro ao salvar alias:', alias, err);
+      }
     }
+  } finally {
+    client.release();
   }
 }

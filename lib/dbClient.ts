@@ -1,6 +1,4 @@
 import { Pool } from 'pg';
-import { sql } from '@vercel/postgres';
-import { salvarAliases } from './aliasUtils';
 
 // Configuração do pool de conexões para o Neon
 const pool = new Pool({
@@ -66,6 +64,21 @@ export async function initializeDatabase() {
       
       CREATE INDEX IF NOT EXISTS idx_casos_id_caso ON casos(id_caso);
     `);
+
+    // Criar tabela de aliases
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS caso_aliases (
+        id SERIAL PRIMARY KEY,
+        id_caso TEXT NOT NULL,
+        alias TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(id_caso, alias),
+        FOREIGN KEY (id_caso) REFERENCES casos(id_caso) ON DELETE CASCADE
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_caso_aliases_alias ON caso_aliases(alias);
+      CREATE INDEX IF NOT EXISTS idx_caso_aliases_id_caso ON caso_aliases(id_caso);
+    `);
   } catch (error) {
     console.error('Erro ao inicializar banco de dados:', error);
     throw error;
@@ -74,7 +87,7 @@ export async function initializeDatabase() {
   }
 }
 
-// Função unificada para promover caso (usando pool para consistência)
+// Função unificada para promover caso
 export async function promoverCaso(
   id_caso: string,
   etapa: string,
@@ -86,7 +99,7 @@ export async function promoverCaso(
     const existingQuery = 'SELECT id FROM casos WHERE id_caso = $1 LIMIT 1';
     const existing = await client.query(existingQuery, [id_caso]);
 
-    if (existing.rowCount > 0) {
+    if (existing.rowCount && existing.rowCount > 0) {
       const updateQuery = `
         UPDATE casos
         SET etapa = $1,
@@ -103,8 +116,18 @@ export async function promoverCaso(
         INSERT INTO casos (id_caso, etapa, especialista, probabilidade)
         VALUES ($1, $2, $3, $4)
       `;
-await salvarAliases(id_caso, id_caso);
       await client.query(insertQuery, [id_caso, etapa, especialista, probabilidade]);
+      
+      // Salvar aliases após criar o caso
+      if (typeof salvarAliases === 'function') {
+        try {
+          const { salvarAliases } = await import('./aliasUtils');
+          await salvarAliases(id_caso, id_caso);
+        } catch (err) {
+          console.error('Erro ao salvar aliases:', err);
+        }
+      }
+      
       return 'criado';
     }
   } catch (error) {
@@ -187,7 +210,8 @@ export async function getRegistroPorId(id_registro: string) {
 export async function getCasoStatus(idCaso: string) {
   const client = await pool.connect();
   try {
-    const query = `
+    // Primeiro tenta buscar direto pelo id_caso
+    let query = `
       SELECT 
         id_caso,
         etapa,
@@ -197,7 +221,25 @@ export async function getCasoStatus(idCaso: string) {
       FROM casos 
       WHERE id_caso = $1
     `;
-    const result = await client.query(query, [idCaso]);
+    let result = await client.query(query, [idCaso]);
+    
+    // Se não encontrar, tenta buscar por alias
+    if (result.rowCount === 0) {
+      query = `
+        SELECT 
+          c.id_caso,
+          c.etapa,
+          c.especialista,
+          c.probabilidade,
+          c.timestamp
+        FROM casos c
+        INNER JOIN caso_aliases ca ON c.id_caso = ca.id_caso
+        WHERE ca.alias = $1
+        LIMIT 1
+      `;
+      result = await client.query(query, [idCaso]);
+    }
+    
     return result.rows[0] || null;
   } catch (error) {
     console.error('Erro ao buscar status do caso:', error);
@@ -234,6 +276,26 @@ export async function upsertCasoStatus(
     return result.rows[0];
   } catch (error) {
     console.error('Erro ao atualizar/criar status do caso:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Função para buscar casos recentes
+export async function getCasosRecentes(limit: number = 10) {
+  const client = await pool.connect();
+  try {
+    const query = `
+      SELECT id_caso, etapa, especialista, probabilidade, timestamp
+      FROM casos
+      ORDER BY timestamp DESC
+      LIMIT $1
+    `;
+    const result = await client.query(query, [limit]);
+    return result.rows;
+  } catch (error) {
+    console.error('Erro ao buscar casos recentes:', error);
     throw error;
   } finally {
     client.release();
