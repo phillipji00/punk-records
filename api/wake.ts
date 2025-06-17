@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getDbPool } from '@/lib/dbClient';
+import { getDbPool } from '../lib/dbClient';
 
 export default async function handler(
   req: NextApiRequest,

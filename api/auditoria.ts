@@ -124,8 +124,8 @@ export default async function handler(
   
   try {
     await initializeDatabase();
-    const pool = getDbPool(); // ← Corrigido: usar getDbPool()
-    client = await pool.connect(); // ← Corrigido: obter client do pool
+    const pool = getDbPool();
+    client = await pool.connect();
 
     const idCaso = req.query.idCaso;
 
@@ -135,7 +135,6 @@ export default async function handler(
       });
     }
 
-    // Agora TypeScript sabe que idCaso é string
     const casoInfo = await getCasoStatus(idCaso);
     
     if (!casoInfo) {

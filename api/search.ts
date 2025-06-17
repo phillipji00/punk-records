@@ -16,8 +16,8 @@ export default async function handler(
 
   try {
     await initializeDatabase();
-    const pool = getDbPool(); // ← Corrigido: usar getDbPool()
-    client = await pool.connect(); // ← Corrigido: obter client do pool
+    const pool = getDbPool();
+    client = await pool.connect();
 
     // Extrair parâmetros da query
     const { 
