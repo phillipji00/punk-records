@@ -22,7 +22,7 @@ interface ResumoAuditoria {
 }
 
 interface Registro {
-  id: number;
+  id_registro: string;
   tipo_registro: string;
   autor: string;
   dados: any;
