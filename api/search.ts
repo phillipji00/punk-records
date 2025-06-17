@@ -48,7 +48,7 @@ export default async function handler(
     // Construir query base
     let query = `
       SELECT 
-        id,
+        id_registro,
         id_caso,
         tipo_registro,
         autor,

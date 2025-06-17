@@ -7,7 +7,7 @@ const pool = new Pool({
     rejectUnauthorized: false
   } : undefined,
   // Configurações otimizadas para serverless com timeouts mais longos
-  max: 5,
+  max: 1,
   idleTimeoutMillis: 30000,  // Aumentado de 10s para 30s
   connectionTimeoutMillis: 30000,  // Aumentado de 10s para 30s
   query_timeout: 25000,  // Timeout para queries individuais
@@ -93,8 +93,7 @@ export async function initializeDatabase() {
 
     -- Criar tabela de casos
     CREATE TABLE IF NOT EXISTS casos (
-      id SERIAL PRIMARY KEY,
-      id_caso TEXT UNIQUE NOT NULL,
+      id_caso TEXT PRIMARY KEY,
       etapa TEXT NOT NULL,
       especialista TEXT NOT NULL,
       probabilidade REAL,
@@ -135,7 +134,7 @@ export async function promoverCaso(
   probabilidade: number | null = null
 ): Promise<'criado' | 'atualizado'> {
   try {
-    const existingQuery = 'SELECT id FROM casos WHERE id_caso = $1 LIMIT 1';
+    const existingQuery = 'SELECT id_caso FROM casos WHERE id_caso = $1 LIMIT 1';
     const existing = await executeQueryWithRetry(existingQuery, [id_caso]);
 
     if (existing.rowCount && existing.rowCount > 0) {
