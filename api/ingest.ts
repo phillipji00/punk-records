@@ -2,8 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 import { insertRegistro, initializeDatabase } from '../lib/dbClient';
 
-// Schema de validação usando Zod
-const RegistroSchema = z.object({
+// Schema base genérico de registro
+const RegistroSchemaBase = z.object({
   tipo_registro: z.enum([
     'hipotese',
     'evidencia',
@@ -11,151 +11,96 @@ const RegistroSchema = z.object({
     'entrada_timeline',
     'registro_misc'
   ]),
-  autor: z.string().min(1, 'Autor é obrigatório'),
-  dados: z.record(z.any()).refine(
-    (val) => Object.keys(val).length > 0,
-    { message: 'Dados não podem estar vazios' }
-  ),
-  timestamp: z.string().datetime().optional(),
-  id_caso: z.string().min(1, 'ID do caso é obrigatório'),
-  etapa: z.string().min(1, 'Etapa é obrigatória'),
-  especialista: z.string().min(1, 'Especialista é obrigatório'),
+  autor: z.string().min(1, "Autor é obrigatório"),
+  dados: z.record(z.any()),
+  timestamp: z.string().optional(),
+  id_caso: z.string().min(1, "id_caso é obrigatório"),
+  etapa: z.string().min(1, "etapa é obrigatória"),
+  especialista: z.string().min(1, "especialista é obrigatório"),
   probabilidade: z.number().min(0).max(1).optional()
 });
 
-// Tipo inferido do schema
-type RegistroInput = z.infer<typeof RegistroSchema>;
+// Schemas específicos por tipo_registro
+const SchemaPorTipo = {
+  hipotese: z.object({
+    hipotese: z.string().min(5, "Hipótese deve conter uma descrição textual"),
+    justificativa: z.string().min(5).optional(),
+    acoes_recomendadas: z.array(z.string()).optional(),
+    nivel_confianca: z.number().min(0).max(1).optional()
+  }),
+  evidencia: z.object({
+    descricao: z.string().min(5),
+    origem: z.string().optional(),
+    confiabilidade: z.number().min(0).max(1).optional()
+  }),
+  perfil_personagem: z.object({
+    nome: z.string().min(2),
+    motivacoes: z.string().optional(),
+    riscos: z.array(z.string()).optional()
+  }),
+  entrada_timeline: z.object({
+    descricao: z.string().min(3),
+    horario: z.string().optional()
+  }),
+  registro_misc: z.object({
+    conteudo: z.string().min(2)
+  })
+};
 
-// Handler principal
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
-  // Validação do método HTTP
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({
-      erro: 'Método não permitido',
-      mensagem: 'Este endpoint aceita apenas requisições POST'
-    });
+    return res.status(405).json({ erro: 'Método não permitido', permitido: 'POST' });
+  }
+
+  if (!req.body) {
+    return res.status(400).json({ erro: 'Corpo da requisição vazio', mensagem: 'É necessário enviar dados no corpo da requisição' });
   }
 
   try {
-    // Inicializa o banco se necessário (cria tabelas)
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
+    // Validação inicial
+    const parsedBase = RegistroSchemaBase.safeParse(body);
+    if (!parsedBase.success) {
+      return res.status(400).json({
+        erro: "Validação falhou (campos principais)",
+        detalhes: parsedBase.error.flatten()
+      });
+    }
+
+    // Validação dinâmica de dados
+    const tipo = body.tipo_registro;
+    const schemaDados = SchemaPorTipo[tipo];
+    if (!schemaDados) {
+      return res.status(400).json({ erro: "Tipo de registro não suportado" });
+    }
+
+    const parsedDados = schemaDados.safeParse(body.dados);
+    if (!parsedDados.success) {
+      return res.status(400).json({
+        erro: "Validação específica falhou",
+        mensagem: parsedDados.error.errors[0]?.message || "Erro no campo 'dados'"
+      });
+    }
+
+    // Insere no banco
+    const registroFinal = {
+      ...parsedBase.data,
+      dados: parsedDados.data,
+      timestamp: parsedBase.data.timestamp || new Date().toISOString()
+    };
+
     await initializeDatabase();
+    const id_registro = await insertRegistro(registroFinal);
 
-    // Validação do corpo da requisição
-    if (!req.body) {
-      return res.status(400).json({
-        erro: 'Corpo da requisição vazio',
-        mensagem: 'É necessário enviar dados no corpo da requisição'
-      });
-    }
-
-    // Parse e validação dos dados usando Zod
-    let dadosValidados: RegistroInput;
-    try {
-      dadosValidados = RegistroSchema.parse(req.body);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({
-          erro: 'Dados inválidos',
-          detalhes: error.errors.map(err => ({
-            campo: err.path.join('.'),
-            mensagem: err.message
-          }))
-        });
-      }
-      throw error;
-    }
-
-    // Validações adicionais específicas por tipo de registro
-    const validacoesEspecificas = validarTipoRegistro(dadosValidados);
-    if (!validacoesEspecificas.valido) {
-      return res.status(400).json({
-        erro: 'Validação específica falhou',
-        mensagem: validacoesEspecificas.mensagem
-      });
-    }
-
-    // Inserir no banco de dados
-    const idRegistro = await insertRegistro(dadosValidados);
-
-    // Resposta de sucesso
     return res.status(200).json({
-      sucesso: true,
-      id_registro: idRegistro,
-      tipo_registro: dadosValidados.tipo_registro,
-      timestamp: dadosValidados.timestamp || new Date().toISOString(),
-      mensagem: 'Registro inserido com sucesso'
+      status: "created",
+      id_registro,
+      recebido_em: registroFinal.timestamp
     });
 
-  } catch (error) {
-    // Log do erro no servidor
-    console.error('Erro ao processar ingest:', error);
-
-    // Resposta de erro genérico
-    return res.status(500).json({
-      erro: 'Erro interno do servidor',
-      mensagem: 'Ocorreu um erro ao processar o registro. Por favor, tente novamente.'
-    });
+  } catch (err) {
+    console.error("Erro ao processar ingest:", err);
+    return res.status(500).json({ erro: "Erro interno no servidor", detalhes: err instanceof Error ? err.message : String(err) });
   }
-}
-
-// Função auxiliar para validações específicas por tipo
-function validarTipoRegistro(registro: RegistroInput): { valido: boolean; mensagem?: string } {
-  switch (registro.tipo_registro) {
-    case 'hipotese':
-      if (!registro.dados.descricao || typeof registro.dados.descricao !== 'string') {
-        return { 
-          valido: false, 
-          mensagem: 'Hipótese deve conter uma descrição textual' 
-        };
-      }
-      if (registro.probabilidade === undefined) {
-        return { 
-          valido: false, 
-          mensagem: 'Hipótese deve incluir uma probabilidade (0-1)' 
-        };
-      }
-      break;
-
-    case 'evidencia':
-      if (!registro.dados.tipo_evidencia || !registro.dados.conteudo) {
-        return { 
-          valido: false, 
-          mensagem: 'Evidência deve conter tipo_evidencia e conteudo' 
-        };
-      }
-      break;
-
-    case 'perfil_personagem':
-      if (!registro.dados.nome || !registro.dados.papel) {
-        return { 
-          valido: false, 
-          mensagem: 'Perfil de personagem deve conter nome e papel' 
-        };
-      }
-      break;
-
-    case 'entrada_timeline':
-      if (!registro.dados.data_evento || !registro.dados.descricao) {
-        return { 
-          valido: false, 
-          mensagem: 'Entrada de timeline deve conter data_evento e descricao' 
-        };
-      }
-      break;
-
-    case 'registro_misc':
-      // Registros miscelâneos são mais flexíveis
-      if (!registro.dados.categoria) {
-        return { 
-          valido: false, 
-          mensagem: 'Registro misc deve conter ao menos uma categoria' 
-        };
-      }
-      break;
-  }
-
-  return { valido: true };
 }
