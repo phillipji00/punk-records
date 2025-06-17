@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 
-let pool: Pool | null = null;
+let pool: Pool | undefined;
 
 export function getDbPool(): Pool {
   if (!pool) {
@@ -10,7 +10,12 @@ export function getDbPool(): Pool {
       connectionTimeoutMillis: 15000,
       idleTimeoutMillis: 10000,
     });
+
+    pool.on('error', (err) => {
+      console.error('Erro inesperado no pool de conexões:', err);
+    });
   }
+
   return pool;
 }
 
