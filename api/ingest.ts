@@ -48,18 +48,6 @@ const SchemaPorTipo = {
   })
 };
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // 👈 ADICIONE OS LOGS AQUI, logo no início da função
-  console.log('=== DEBUG REQUEST ===');
-  console.log('Method:', req.method);
-  console.log('Headers:', JSON.stringify(req.headers, null, 2));
-  console.log('Body (raw):', req.body);
-  console.log('Body type:', typeof req.body);
-  console.log('===================');
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ erro: 'Método não permitido', permitido: 'POST' });
-  }
 
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
