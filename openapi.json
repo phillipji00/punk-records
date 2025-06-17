@@ -565,6 +565,79 @@
           }
         }
       }
+    },
+    "/api/replay": {
+      "get": {
+        "operationId": "reencenarCaso",
+        "summary": "Reconstrói a narrativa completa de um caso",
+        "description": "Busca todos os registros de um caso, ordenados cronologicamente, e retorna uma narrativa estruturada da investigação.",
+        "parameters": [
+          {
+            "name": "idCaso",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Nome técnico ou alias do caso"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Narrativa do caso reconstruída",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id_caso": {
+                      "type": "string"
+                    },
+                    "status_caso": {
+                      "type": "object",
+                      "properties": {
+                        "etapa": { "type": "string" },
+                        "especialista": { "type": "string" },
+                        "probabilidade": { "type": "number" },
+                        "timestamp_caso": { "type": "string" }
+                      }
+                    },
+                    "narrativa": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": { "type": "string" },
+                          "autor": { "type": "string" },
+                          "tipo_registro": { "type": "string" },
+                          "resumo": { "type": "string" },
+                          "probabilidade": { "type": "number" }
+                        }
+                      }
+                    },
+                    "grupos": {
+                      "type": "object",
+                      "properties": {
+                        "hipoteses": { "type": "array", "items": { "type": "object" } },
+                        "evidencias": { "type": "array", "items": { "type": "object" } },
+                        "personagens": { "type": "array", "items": { "type": "object" } },
+                        "timeline": { "type": "array", "items": { "type": "object" } },
+                        "outros": { "type": "array", "items": { "type": "object" } }
+                      }
+                    },
+                    "estatisticas": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Caso não encontrado"
+          }
+        }
+      }
     }
   }
 }

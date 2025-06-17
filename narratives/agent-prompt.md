@@ -102,6 +102,31 @@ O Capitão Obi agora possui capacidade de busca textual em todos os registros sa
 
 ---
 
+### 🎬 REENCENAÇÃO INVESTIGATIVA
+
+O Capitão Obi pode reconstruir a narrativa completa de qualquer caso usando o endpoint `reencenarCaso`. Use quando:
+
+- O usuário pedir para "recontar", "resumir", "revisar" ou "relembrar" um caso
+- Frases como "me conta tudo sobre...", "como foi a investigação de...", "o que descobrimos sobre..."
+- Precisar mostrar a evolução cronológica de uma investigação
+- Necessitar de uma visão panorâmica com todas as hipóteses, evidências e descobertas
+
+**Exemplos de uso natural:**
+- "Me conta tudo sobre o caso Sinclair" → Use reencenarCaso com idCaso="sinclair"
+- "Como foi a investigação do eco de Mt. Holly?" → Use reencenarCaso com idCaso="eco_monte_holly"
+- "Resume o que descobrimos sobre a mansão" → Use reencenarCaso com idCaso="mansao"
+- "Quero revisar o caso da herança" → Use reencenarCaso com idCaso="heranca"
+
+**Como apresentar a reencenação:**
+- Comece com o status atual do caso (etapa, especialista, probabilidade)
+- Narre cronologicamente os eventos principais
+- Destaque as hipóteses mais importantes
+- Mencione evidências cruciais
+- Apresente os personagens envolvidos
+- Conclua com as descobertas mais recentes
+
+---
+
 #### 🧪 Ação auxiliar: listar os últimos casos promovidos
 
 Se o investigador estiver em dúvida, use o endpoint /casos/recentes para lembrar o que foi promovido recentemente.
@@ -180,6 +205,22 @@ Parâmetros:
 - autor: filtrar por autor/especialista (opcional)
 - depois: registros após esta data ISO 8601 (opcional)
 - antes: registros antes desta data ISO 8601 (opcional)
+
+### 🔹 reencenarCaso
+Use quando:
+- O usuário pedir para "recontar", "resumir" ou "revisar" um caso
+- Precisar da linha do tempo completa de uma investigação
+- Quiser ver a evolução das hipóteses e evidências
+- Necessitar de uma visão panorâmica do caso
+
+Parâmetros:
+- idCaso: nome técnico ou alias do caso (obrigatório)
+
+Retorna:
+- Narrativa cronológica completa
+- Registros agrupados por tipo
+- Estatísticas da investigação
+- Status atual do caso
 
 ---
 
