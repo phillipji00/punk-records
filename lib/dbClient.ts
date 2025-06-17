@@ -24,10 +24,11 @@ export interface RegistroData {
   probabilidade?: number;
 }
 
-// Função para criar a tabela se não existir
+// Função para criar as tabelas se não existirem
 export async function initializeDatabase() {
   const client = await pool.connect();
   try {
+    // Criar tabela de registros
     await client.query(`
       CREATE TABLE IF NOT EXISTS registros (
         id_registro UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -47,10 +48,27 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_registros_tipo ON registros(tipo_registro);
       CREATE INDEX IF NOT EXISTS idx_registros_timestamp ON registros(timestamp);
     `);
+
+    // Criar tabela de casos
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS casos (
+        id SERIAL PRIMARY KEY,
+        id_caso TEXT UNIQUE NOT NULL,
+        etapa TEXT NOT NULL,
+        especialista TEXT NOT NULL,
+        probabilidade REAL,
+        timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_casos_id_caso ON casos(id_caso);
+    `);
   } finally {
     client.release();
   }
 }
+
 // Função para inserir um novo registro
 export async function insertRegistro(data: RegistroData): Promise<string> {
   const client = await pool.connect();
@@ -105,6 +123,108 @@ export async function getRegistroPorId(id_registro: string) {
     const query = `SELECT * FROM registros WHERE id_registro = $1`;
     const result = await client.query(query, [id_registro]);
     return result.rows[0] || null;
+  } finally {
+    client.release();
+  }
+}
+
+// Função para buscar o status de um caso
+export async function getCasoStatus(idCaso: string) {
+  const client = await pool.connect();
+  try {
+    const query = `
+      SELECT 
+        id_caso,
+        etapa,
+        especialista,
+        probabilidade,
+        timestamp
+      FROM casos 
+      WHERE id_caso = $1
+    `;
+    const result = await client.query(query, [idCaso]);
+    return result.rows[0] || null;
+  } finally {
+    client.release();
+  }
+}
+
+// Função para atualizar ou criar status de caso
+export async function upsertCasoStatus(
+  idCaso: string,
+  etapa: string,
+  especialista: string,
+  probabilidade?: number
+) {
+  const client = await pool.connect();
+  try {
+    const query = `
+      INSERT INTO casos (id_caso, etapa, especialista, probabilidade, timestamp)
+      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+      ON CONFLICT (id_caso) 
+      DO UPDATE SET 
+        etapa = EXCLUDED.etapa,
+        especialista = EXCLUDED.especialista,
+        probabilidade = EXCLUDED.probabilidade,
+        timestamp = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `;
+    
+    const values = [idCaso, etapa, especialista, probabilidade || null];
+    const result = await client.query(query, values);
+    return result.rows[0];
+  } finally {
+    client.release();
+  }
+}
+
+// Função para buscar o status de um caso
+export async function getCasoStatus(idCaso: string) {
+  const client = await pool.connect();
+  try {
+    const query = `
+      SELECT 
+        id_caso,
+        etapa,
+        especialista,
+        probabilidade,
+        timestamp
+      FROM casos 
+      WHERE id_caso = $1
+    `;
+    const result = await client.query(query, [idCaso]);
+    return result.rows[0] || null;
+  } finally {
+    client.release();
+  }
+}
+
+// Função para atualizar ou criar status de caso
+export async function upsertCasoStatus(
+  idCaso: string,
+  etapa: string,
+  especialista: string,
+  probabilidade?: number
+) {
+  const client = await pool.connect();
+  try {
+    const query = `
+      INSERT INTO casos (id_caso, etapa, especialista, probabilidade, timestamp)
+      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+      ON CONFLICT (id_caso) 
+      DO UPDATE SET 
+        etapa = EXCLUDED.etapa,
+        especialista = EXCLUDED.especialista,
+        probabilidade = EXCLUDED.probabilidade,
+        timestamp = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `;
+    
+    const values = [idCaso, etapa, especialista, probabilidade || null];
+    const result = await client.query(query, values);
+    return result.rows[0];
   } finally {
     client.release();
   }
