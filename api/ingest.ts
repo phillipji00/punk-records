@@ -72,11 +72,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Validação dinâmica de dados
-    const tipo = body.tipo_registro;
-    const schemaDados = SchemaPorTipo[tipo];
-    if (!schemaDados) {
-      return res.status(400).json({ erro: "Tipo de registro não suportado" });
-    }
+const tipo = body.tipo_registro;
+if (!(tipo in SchemaPorTipo)) {
+  return res.status(400).json({ erro: "Tipo de registro não suportado" });
+}
+const schemaDados = SchemaPorTipo[tipo as keyof typeof SchemaPorTipo];
 
     const parsedDados = schemaDados.safeParse(body.dados);
     if (!parsedDados.success) {
