@@ -639,6 +639,78 @@
         }
       }
     },
+"/api/sessionCompile": {
+  "post": {
+    "operationId": "sessionCompile",
+    "summary": "Compilar Sessão",
+    "description": "Compila registros da sessão em documento markdown com merge inteligente.",
+    "requestBody": {
+      "required": false,
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "session_id": {
+                "type": "string",
+                "description": "ID da sessão (ex: dia01). Se não fornecido, usa sessão atual."
+              },
+              "criar_consolidado": {
+                "type": "boolean",
+                "description": "Se deve criar/atualizar documento consolidado geral",
+                "default": true
+              },
+              "max_size_kb": {
+                "type": "number",
+                "description": "Tamanho máximo do documento em KB",
+                "default": 100
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "200": {
+        "description": "Sessão compilada com sucesso"
+      }
+    }
+  }
+},
+"/api/sessionLoad": {
+  "get": {
+    "operationId": "sessionLoad",
+    "summary": "Carregar Sessão",
+    "description": "Carrega documento compilado de sessão ou consolidado geral.",
+    "parameters": [
+      {
+        "name": "tipo",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": ["consolidado", "session", "latest"],
+          "default": "consolidado"
+        },
+        "description": "Tipo de documento a carregar"
+      },
+      {
+        "name": "session_id",
+        "in": "query", 
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "ID da sessão específica (obrigatório se tipo=session)"
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Documento carregado com sucesso"
+      }
+    }
+  }
+},
     "/api/auditoria": {
       "get": {
         "operationId": "auditarCaso",
@@ -655,6 +727,7 @@
             "description": "Nome técnico ou alias do caso a ser auditado"
           }
         ],
+
         "responses": {
           "200": {
             "description": "Resultado da auditoria",
@@ -726,5 +799,6 @@
         }
       }
     }
+
   }
 }
