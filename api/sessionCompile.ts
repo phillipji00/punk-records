@@ -1,73 +1,4 @@
-// Buscar registros recentes sem session_id (lógica baseada no dia)
-async function getRegistrosRecentesSemSession(sessionId: string): Promise<any[]> {
-  const pool = getDbPool();
-  const client = await pool.connect();
-  
-  try {
-    let query = '';
-    
-    if (sessionId === 'dia01') {
-      // dia01 pega TODOS os registros históricos sem session_id
-      query = `
-        SELECT * FROM registros 
-        WHERE session_id IS NULL 
-        AND tipo_registro IN ('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline', 'registro_misc')
-        ORDER BY timestamp ASC
-      `;
-      console.log(`Buscando TODOS os registros históricos sem session_id para ${sessionId}`);
-    } else {
-      // Qualquer outro dia pega últimas 10 horas
-      query = `
-        SELECT * FROM registros 
-        WHERE session_id IS NULL 
-        AND timestamp >= NOW() - INTERVAL '10 hours'
-        AND tipo_registro IN ('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline', 'registro_misc')
-        ORDER BY timestamp ASC
-      `;
-      console.log(`Buscando registros das últimas 10 horas para ${sessionId}`);
-    }
-    
-    const result = await client.query(query);
-    return result.rows || [];
-  } finally {
-    client.release();
-  }
-}
-    // Processar documento consolidado apenas se há conteúdo válido
-async function processarDocumentoConsolidado(
-  markdownSessao: string, 
-  sessionId: string, 
-  maxSizeKb: number
-): Promise<{id_registro: string; size_kb: number; total_sessions: number}> {
-  // Buscar consolidado anterior
-  const consolidadoAnterior = await buscarDocumentoConsolidado();
-  
-  // Extrair resumo da sessão atual
-  const resumoSessao = extrairResumoSessao(markdownSessao, sessionId);
-  
-  // Construir novo consolidado
-  let novoConsolidado = '';
-  
-  if (consolidadoAnterior) {
-    // Se já existe consolidado, adicionar nova sessão
-    novoConsolidado = mergeConsolidado(consolidadoAnterior, resumoSessao);
-  } else {
-    // Primeiro consolidado
-    novoConsolidado = criarPrimeiroConsolidado(resumoSessao);
-  }
-  
-  // Verificar tamanho e compactar se necessário
-  const sizeKb = Buffer.byteLength(novoConsolidado, 'utf8') / 1024;
-  if (sizeKb > maxSizeKb) {
-    novoConsolidado = compactarConsolidado(novoConsolidado, maxSizeKb);
-  }
-  
-  // Salvar novo consolidado
-  const idRegistro = await salvarDocumentoConsolidado(novoConsolidado);
-  const finalSizeKb = Buffer.byteLength(novoConsolidado, 'utf8') / 1024;
-  
-  // Contar sessões no consolidado
-  const totalSessions = contimport { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from 'next';
 import { getDbPool, initializeDatabase, getRegistrosPorSession, insertRegistro, generateSessionId } from '../lib/dbClient';
 import { IntelligentMarkdownMerger } from './markdownMerger';
 
@@ -216,53 +147,7 @@ export default async function handler(
   }
 }
 
-// Buscar registros recentes sem session_id (últimas 2 horas)
-async function getRegistrosRecentesSemSession(): Promise<any[]> {
-  const pool = getDbPool();
-  const client = await pool.connect();
-  
-  try {
-    const query = `
-      SELECT * FROM registros 
-      WHERE session_id IS NULL 
-      AND timestamp >= NOW() - INTERVAL '2 hours'
-      AND tipo_registro IN ('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline', 'registro_misc')
-      ORDER BY timestamp ASC
-    `;
-    
-    const result = await client.query(query);
-    return result.rows || [];
-  } finally {
-    client.release();
-  }
-}
-
-// Atualizar registros para incluir session_id
-async function atualizarRegistrosComSession(registros: any[], sessionId: string): Promise<void> {
-  const pool = getDbPool();
-  const client = await pool.connect();
-  
-  try {
-    for (const registro of registros) {
-      const updateQuery = `
-        UPDATE registros 
-        SET session_id = $1, updated_at = NOW()
-        WHERE id_registro = $2
-      `;
-      
-      await client.query(updateQuery, [sessionId, registro.id_registro]);
-    }
-    
-    console.log(`Atualizados ${registros.length} registros com session_id: ${sessionId}`);
-  } finally {
-    client.release();
-  }
-}
-
-function contarSessoesConsolidado(consolidado: string): number {
-  const matches = consolidado.match(/## dia\d+/g);
-  return matches ? matches.length : 0;
-}
+// Buscar documento de sessão anterior
 async function buscarDocumentoSessao(sessionId: string): Promise<string | null> {
   const pool = getDbPool();
   const client = await pool.connect();
@@ -586,6 +471,64 @@ function splitMarkdownInteligente(markdown: string, parts: number): string[] {
   return chunks;
 }
 
+// Buscar registros recentes sem session_id (lógica baseada no dia)
+async function getRegistrosRecentesSemSession(sessionId: string): Promise<any[]> {
+  const pool = getDbPool();
+  const client = await pool.connect();
+  
+  try {
+    let query = '';
+    
+    if (sessionId === 'dia01') {
+      // dia01 pega TODOS os registros históricos sem session_id
+      query = `
+        SELECT * FROM registros 
+        WHERE session_id IS NULL 
+        AND tipo_registro IN ('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline', 'registro_misc')
+        ORDER BY timestamp ASC
+      `;
+      console.log(`Buscando TODOS os registros históricos sem session_id para ${sessionId}`);
+    } else {
+      // Qualquer outro dia pega últimas 10 horas
+      query = `
+        SELECT * FROM registros 
+        WHERE session_id IS NULL 
+        AND timestamp >= NOW() - INTERVAL '10 hours'
+        AND tipo_registro IN ('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline', 'registro_misc')
+        ORDER BY timestamp ASC
+      `;
+      console.log(`Buscando registros das últimas 10 horas para ${sessionId}`);
+    }
+    
+    const result = await client.query(query);
+    return result.rows || [];
+  } finally {
+    client.release();
+  }
+}
+
+// Atualizar registros para incluir session_id
+async function atualizarRegistrosComSession(registros: any[], sessionId: string): Promise<void> {
+  const pool = getDbPool();
+  const client = await pool.connect();
+  
+  try {
+    for (const registro of registros) {
+      const updateQuery = `
+        UPDATE registros 
+        SET session_id = $1, updated_at = NOW()
+        WHERE id_registro = $2
+      `;
+      
+      await client.query(updateQuery, [sessionId, registro.id_registro]);
+    }
+    
+    console.log(`Atualizados ${registros.length} registros com session_id: ${sessionId}`);
+  } finally {
+    client.release();
+  }
+}
+
 // Funções para documento consolidado
 async function buscarDocumentoConsolidado(): Promise<string | null> {
   const pool = getDbPool();
@@ -696,5 +639,5 @@ async function salvarDocumentoConsolidado(markdown: string): Promise<string> {
 
 function contarSessoesConsolidado(consolidado: string): number {
   const matches = consolidado.match(/## dia\d+/g);
-  return matches ? matches.length : 1;
+  return matches ? matches.length : 0;
 }
