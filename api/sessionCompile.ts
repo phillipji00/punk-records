@@ -1,4 +1,73 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+// Buscar registros recentes sem session_id (lógica baseada no dia)
+async function getRegistrosRecentesSemSession(sessionId: string): Promise<any[]> {
+  const pool = getDbPool();
+  const client = await pool.connect();
+  
+  try {
+    let query = '';
+    
+    if (sessionId === 'dia01') {
+      // dia01 pega TODOS os registros históricos sem session_id
+      query = `
+        SELECT * FROM registros 
+        WHERE session_id IS NULL 
+        AND tipo_registro IN ('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline', 'registro_misc')
+        ORDER BY timestamp ASC
+      `;
+      console.log(`Buscando TODOS os registros históricos sem session_id para ${sessionId}`);
+    } else {
+      // Qualquer outro dia pega últimas 10 horas
+      query = `
+        SELECT * FROM registros 
+        WHERE session_id IS NULL 
+        AND timestamp >= NOW() - INTERVAL '10 hours'
+        AND tipo_registro IN ('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline', 'registro_misc')
+        ORDER BY timestamp ASC
+      `;
+      console.log(`Buscando registros das últimas 10 horas para ${sessionId}`);
+    }
+    
+    const result = await client.query(query);
+    return result.rows || [];
+  } finally {
+    client.release();
+  }
+}
+    // Processar documento consolidado apenas se há conteúdo válido
+async function processarDocumentoConsolidado(
+  markdownSessao: string, 
+  sessionId: string, 
+  maxSizeKb: number
+): Promise<{id_registro: string; size_kb: number; total_sessions: number}> {
+  // Buscar consolidado anterior
+  const consolidadoAnterior = await buscarDocumentoConsolidado();
+  
+  // Extrair resumo da sessão atual
+  const resumoSessao = extrairResumoSessao(markdownSessao, sessionId);
+  
+  // Construir novo consolidado
+  let novoConsolidado = '';
+  
+  if (consolidadoAnterior) {
+    // Se já existe consolidado, adicionar nova sessão
+    novoConsolidado = mergeConsolidado(consolidadoAnterior, resumoSessao);
+  } else {
+    // Primeiro consolidado
+    novoConsolidado = criarPrimeiroConsolidado(resumoSessao);
+  }
+  
+  // Verificar tamanho e compactar se necessário
+  const sizeKb = Buffer.byteLength(novoConsolidado, 'utf8') / 1024;
+  if (sizeKb > maxSizeKb) {
+    novoConsolidado = compactarConsolidado(novoConsolidado, maxSizeKb);
+  }
+  
+  // Salvar novo consolidado
+  const idRegistro = await salvarDocumentoConsolidado(novoConsolidado);
+  const finalSizeKb = Buffer.byteLength(novoConsolidado, 'utf8') / 1024;
+  
+  // Contar sessões no consolidado
+  const totalSessions = contimport { NextApiRequest, NextApiResponse } from 'next';
 import { getDbPool, initializeDatabase, getRegistrosPorSession, insertRegistro, generateSessionId } from '../lib/dbClient';
 import { IntelligentMarkdownMerger } from './markdownMerger';
 
@@ -53,22 +122,42 @@ export default async function handler(
       max_size_kb = 100
     }: SessionCompileRequest = req.body;
 
-    // Gerar session_id se não fornecido (baseado no dia atual)
-    const finalSessionId = session_id || generateDailySessionId();
+    // Session_id deve vir obrigatoriamente do contexto, não gerar automaticamente
+    if (!session_id) {
+      return res.status(400).json({
+        erro: 'session_id é obrigatório. Informe o contexto da sessão (ex: dia01, dia02, etc.)',
+        exemplo: { session_id: 'dia01' }
+      });
+    }
+
+    const finalSessionId = session_id;
 
     // Buscar todos os registros da sessão
-    const registros = await getRegistrosPorSession(finalSessionId);
+    let registros = await getRegistrosPorSession(finalSessionId);
 
-    // Determinar o markdown da sessão
-    let markdownSessao: string;
+    // Se não encontrou registros da sessão, buscar registros recentes sem session_id
     if (registros.length === 0) {
-      // Criar documento básico para sessão vazia
-      markdownSessao = gerarMarkdownSessaoVazia(finalSessionId);
-    } else {
-      // Buscar documento anterior e compilar normalmente
-      const sessionDocAnterior = await buscarDocumentoSessao(finalSessionId);
-      markdownSessao = await compilarMarkdownSessao(registros, sessionDocAnterior || undefined);
+      console.log(`Nenhum registro encontrado para ${finalSessionId}, buscando registros recentes...`);
+      registros = await getRegistrosRecentesSemSession(finalSessionId);
+      
+      if (registros.length === 0) {
+        return res.status(404).json({
+          erro: 'Nenhum registro encontrado para compilação',
+          session_id: finalSessionId,
+          sugestao: 'Certifique-se de que há registros investigativos salvos neste chat'
+        });
+      }
+      
+      // Atualizar registros encontrados com a session_id
+      await atualizarRegistrosComSession(registros, finalSessionId);
+      
+      // Buscar novamente após atualização
+      registros = await getRegistrosPorSession(finalSessionId);
     }
+
+    // Buscar documento anterior e compilar normalmente
+    const sessionDocAnterior = await buscarDocumentoSessao(finalSessionId);
+    const markdownSessao = await compilarMarkdownSessao(registros, sessionDocAnterior || undefined);
 
     // Verificar tamanho e dividir se necessário
     const sessionDocuments = await processarDocumentoSessao(
@@ -127,13 +216,53 @@ export default async function handler(
   }
 }
 
-// Gerar session_id baseado no dia atual
-function generateDailySessionId(): string {
-  const dayNumber = new Date().getDate().toString().padStart(2, '0');
-  return `dia${dayNumber}`;
+// Buscar registros recentes sem session_id (últimas 2 horas)
+async function getRegistrosRecentesSemSession(): Promise<any[]> {
+  const pool = getDbPool();
+  const client = await pool.connect();
+  
+  try {
+    const query = `
+      SELECT * FROM registros 
+      WHERE session_id IS NULL 
+      AND timestamp >= NOW() - INTERVAL '2 hours'
+      AND tipo_registro IN ('hipotese', 'evidencia', 'perfil_personagem', 'entrada_timeline', 'registro_misc')
+      ORDER BY timestamp ASC
+    `;
+    
+    const result = await client.query(query);
+    return result.rows || [];
+  } finally {
+    client.release();
+  }
 }
 
-// Buscar documento de sessão anterior
+// Atualizar registros para incluir session_id
+async function atualizarRegistrosComSession(registros: any[], sessionId: string): Promise<void> {
+  const pool = getDbPool();
+  const client = await pool.connect();
+  
+  try {
+    for (const registro of registros) {
+      const updateQuery = `
+        UPDATE registros 
+        SET session_id = $1, updated_at = NOW()
+        WHERE id_registro = $2
+      `;
+      
+      await client.query(updateQuery, [sessionId, registro.id_registro]);
+    }
+    
+    console.log(`Atualizados ${registros.length} registros com session_id: ${sessionId}`);
+  } finally {
+    client.release();
+  }
+}
+
+function contarSessoesConsolidado(consolidado: string): number {
+  const matches = consolidado.match(/## dia\d+/g);
+  return matches ? matches.length : 0;
+}
 async function buscarDocumentoSessao(sessionId: string): Promise<string | null> {
   const pool = getDbPool();
   const client = await pool.connect();
@@ -182,7 +311,7 @@ async function compilarMarkdownSessao(registros: any[], documentoAnterior?: stri
       markdown += `### Hipóteses Investigativas\n\n`;
       hipoteses.forEach((h: any, i: number) => {
         const dados = h.dados;
-        markdown += `**${i + 1}.** ${dados.hipotese}\n`;
+        markdown += `**${i + 1}.** ${dados.hipotese || 'Hipótese não especificada'}\n`;
         if (dados.justificativa) {
           markdown += `*Justificativa:* ${dados.justificativa}\n`;
         }
@@ -200,7 +329,7 @@ async function compilarMarkdownSessao(registros: any[], documentoAnterior?: stri
       markdown += `### Evidências Coletadas\n\n`;
       evidencias.forEach((e: any, i: number) => {
         const dados = e.dados;
-        markdown += `**${i + 1}.** ${dados.descricao}\n`;
+        markdown += `**${i + 1}.** ${dados.descricao || 'Evidência registrada'}\n`;
         if (dados.origem) {
           markdown += `*Origem:* ${dados.origem}\n`;
         }
@@ -215,7 +344,7 @@ async function compilarMarkdownSessao(registros: any[], documentoAnterior?: stri
       markdown += `### Perfis de Personagens\n\n`;
       personagens.forEach((p: any, i: number) => {
         const dados = p.dados;
-        markdown += `**${dados.nome}**\n`;
+        markdown += `**${dados.nome || 'Personagem'}**\n`;
         if (dados.motivacoes) {
           markdown += `*Motivações:* ${dados.motivacoes}\n`;
         }
@@ -232,7 +361,7 @@ async function compilarMarkdownSessao(registros: any[], documentoAnterior?: stri
         .sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
         .forEach((t: any, i: number) => {
           const dados = t.dados;
-          markdown += `**${dados.horario || 'Horário indefinido'}** - ${dados.descricao}\n`;
+          markdown += `**${dados.horario || formatarDataHora(t.timestamp)}** - ${dados.descricao || 'Evento registrado'}\n`;
           markdown += `*Registrado por:* ${t.especialista} em ${new Date(t.timestamp).toLocaleDateString('pt-BR')}\n\n`;
         });
     }
@@ -241,9 +370,24 @@ async function compilarMarkdownSessao(registros: any[], documentoAnterior?: stri
       markdown += `### Registros Diversos\n\n`;
       outros.forEach((o: any, i: number) => {
         const dados = o.dados;
-        if (dados.conteudo && !dados.conteudo.includes('TIPO_DOCUMENTO: session_compilation')) {
+        let conteudo = '';
+        
+        // Extrair conteúdo baseado no tipo
+        if (dados.conteudo) {
+          conteudo = dados.conteudo;
+        } else if (dados.hipotese) {
+          conteudo = dados.hipotese;
+        } else if (dados.descricao) {
+          conteudo = dados.descricao;
+        } else {
+          conteudo = 'Registro diverso sem conteúdo específico';
+        }
+        
+        // Só incluir se não for um documento de compilação anterior
+        if (!conteudo.includes('TIPO_DOCUMENTO: session_compilation') && 
+            !conteudo.includes('master_consolidation')) {
           markdown += `**Registro ${i + 1}**\n`;
-          markdown += `${dados.conteudo.substring(0, 200)}${dados.conteudo.length > 200 ? '...' : ''}\n`;
+          markdown += `${conteudo}\n`; // CONTEÚDO COMPLETO, SEM LIMITAÇÃO
           markdown += `*Por:* ${o.especialista} | *Data:* ${new Date(o.timestamp).toLocaleDateString('pt-BR')}\n\n`;
         }
       });
@@ -267,6 +411,11 @@ async function compilarMarkdownSessao(registros: any[], documentoAnterior?: stri
   }
 
   return markdown;
+}
+
+// Função auxiliar para formatar data/hora
+function formatarDataHora(timestamp: string): string {
+  return new Date(timestamp).toLocaleString('pt-BR');
 }
 
 // Processar documento de sessão (com split se necessário)
@@ -314,8 +463,10 @@ async function processarDocumentoConsolidado(
   let novoConsolidado = '';
   
   if (consolidadoAnterior) {
+    // Se já existe consolidado, adicionar nova sessão
     novoConsolidado = mergeConsolidado(consolidadoAnterior, resumoSessao);
   } else {
+    // Primeiro consolidado
     novoConsolidado = criarPrimeiroConsolidado(resumoSessao);
   }
   
@@ -339,22 +490,65 @@ async function processarDocumentoConsolidado(
   };
 }
 
-// Salvar documento de sessão
+// Salvar documento de sessão com UPSERT
 async function salvarDocumentoSessao(markdown: string, sessionId: string): Promise<string> {
-  return await insertRegistro({
-    tipo_registro: 'registro_misc',
-    autor: 'Sistema Syndicate',
-    dados: {
-      conteudo: markdown,
-      tipo_documento: 'session_compilation',
-      session_origem: sessionId
-    },
-    id_caso: `session_${sessionId}`,
-    etapa: 'archival',
-    especialista: 'Sistema',
-    session_id: sessionId,
-    probabilidade: 1.0
-  });
+  const pool = getDbPool();
+  const client = await pool.connect();
+  
+  try {
+    // Primeiro, tentar encontrar registro existente
+    const searchQuery = `
+      SELECT id_registro FROM registros
+      WHERE tipo_registro = 'registro_misc'
+      AND session_id = $1
+      AND dados->>'tipo_documento' = 'session_compilation'
+      ORDER BY timestamp DESC
+      LIMIT 1
+    `;
+    
+    const existingResult = await client.query(searchQuery, [sessionId]);
+    
+    if (existingResult.rows.length > 0) {
+      // Atualizar registro existente
+      const updateQuery = `
+        UPDATE registros 
+        SET dados = $1, timestamp = NOW(), updated_at = NOW()
+        WHERE id_registro = $2
+        RETURNING id_registro
+      `;
+      
+      const dados = {
+        conteudo: markdown,
+        tipo_documento: 'session_compilation',
+        session_origem: sessionId
+      };
+      
+      const updateResult = await client.query(updateQuery, [
+        JSON.stringify(dados), 
+        existingResult.rows[0].id_registro
+      ]);
+      
+      return updateResult.rows[0].id_registro;
+    } else {
+      // Criar novo registro
+      return await insertRegistro({
+        tipo_registro: 'registro_misc',
+        autor: 'Sistema Syndicate',
+        dados: {
+          conteudo: markdown,
+          tipo_documento: 'session_compilation',
+          session_origem: sessionId
+        },
+        id_caso: `session_${sessionId}`,
+        etapa: 'archival',
+        especialista: 'Sistema',
+        session_id: sessionId,
+        probabilidade: 1.0
+      });
+    }
+  } finally {
+    client.release();
+  }
 }
 
 // Funções auxiliares
@@ -444,41 +638,63 @@ function compactarConsolidado(consolidado: string, maxSizeKb: number): string {
 }
 
 async function salvarDocumentoConsolidado(markdown: string): Promise<string> {
-  return await insertRegistro({
-    tipo_registro: 'registro_misc',
-    autor: 'Sistema Syndicate',
-    dados: {
-      conteudo: markdown,
-      tipo_documento: 'master_consolidation'
-    },
-    id_caso: 'consolidado_geral',
-    etapa: 'archival',
-    especialista: 'Sistema',
-    session_id: 'consolidado',
-    probabilidade: 1.0
-  });
+  const pool = getDbPool();
+  const client = await pool.connect();
+  
+  try {
+    // Primeiro, tentar encontrar consolidado existente
+    const searchQuery = `
+      SELECT id_registro FROM registros
+      WHERE tipo_registro = 'registro_misc'
+      AND dados->>'tipo_documento' = 'master_consolidation'
+      ORDER BY timestamp DESC
+      LIMIT 1
+    `;
+    
+    const existingResult = await client.query(searchQuery);
+    
+    if (existingResult.rows.length > 0) {
+      // Atualizar consolidado existente
+      const updateQuery = `
+        UPDATE registros 
+        SET dados = $1, timestamp = NOW(), updated_at = NOW()
+        WHERE id_registro = $2
+        RETURNING id_registro
+      `;
+      
+      const dados = {
+        conteudo: markdown,
+        tipo_documento: 'master_consolidation'
+      };
+      
+      const updateResult = await client.query(updateQuery, [
+        JSON.stringify(dados), 
+        existingResult.rows[0].id_registro
+      ]);
+      
+      return updateResult.rows[0].id_registro;
+    } else {
+      // Criar novo consolidado
+      return await insertRegistro({
+        tipo_registro: 'registro_misc',
+        autor: 'Sistema Syndicate',
+        dados: {
+          conteudo: markdown,
+          tipo_documento: 'master_consolidation'
+        },
+        id_caso: 'consolidado_geral',
+        etapa: 'archival',
+        especialista: 'Sistema',
+        session_id: 'consolidado',
+        probabilidade: 1.0
+      });
+    }
+  } finally {
+    client.release();
+  }
 }
 
 function contarSessoesConsolidado(consolidado: string): number {
   const matches = consolidado.match(/## dia\d+/g);
   return matches ? matches.length : 1;
-}
-
-// Gerar markdown para sessão sem registros
-function gerarMarkdownSessaoVazia(sessionId: string): string {
-  const hoje = new Date().toLocaleDateString('pt-BR');
-  
-  return `# Compilado de Investigações - ${sessionId}
-
-**Data de Compilação:** ${hoje}
-**Registros Processados:** 0
-**Casos Incluídos:** 0
-
----
-
-## Resumo da Sessão
-
-Nenhuma atividade investigativa registrada nesta sessão.
-
----`;
 }
