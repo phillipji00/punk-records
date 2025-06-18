@@ -59,12 +59,15 @@ export default async function handler(
     // Buscar todos os registros da sessão
     const registros = await getRegistrosPorSession(finalSessionId);
 
-    if (registros.length === 0) {
-      return res.status(404).json({
-        erro: 'Nenhum registro encontrado para esta sessão',
-        session_id: finalSessionId
-      });
-    }
+let markdownSessao: string;
+if (registros.length === 0) {
+  // Criar documento básico para sessão vazia
+  markdownSessao = gerarMarkdownSessaoVazia(finalSessionId);
+} else {
+  // Buscar documento anterior e compilar normalmente
+  const sessionDocAnterior = await buscarDocumentoSessao(finalSessionId);
+  markdownSessao = await compilarMarkdownSessao(registros, sessionDocAnterior);
+}
 
     // Buscar documento de sessão anterior (se existir)
     const sessionDocAnterior = await buscarDocumentoSessao(finalSessionId);
@@ -465,4 +468,23 @@ async function salvarDocumentoConsolidado(markdown: string): Promise<string> {
 function contarSessoesConsolidado(consolidado: string): number {
   const matches = consolidado.match(/## dia\d+/g);
   return matches ? matches.length : 1;
+}
+
+// Gerar markdown para sessão sem registros
+function gerarMarkdownSessaoVazia(sessionId: string): string {
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  
+  return `# Compilado de Investigações - ${sessionId}
+
+**Data de Compilação:** ${hoje}
+**Registros Processados:** 0
+**Casos Incluídos:** 0
+
+---
+
+## Resumo da Sessão
+
+Nenhuma atividade investigativa registrada nesta sessão.
+
+---`;
 }
