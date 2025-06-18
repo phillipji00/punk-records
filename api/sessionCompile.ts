@@ -59,30 +59,14 @@ export default async function handler(
     // Buscar todos os registros da sessão
     const registros = await getRegistrosPorSession(finalSessionId);
 
-let markdownSessao: string;
-if (registros.length === 0) {
-  // Criar documento básico para sessão vazia
-  markdownSessao = gerarMarkdownSessaoVazia(finalSessionId);
-} else {
-  // Buscar documento anterior e compilar normalmente
-  const sessionDocAnterior = await buscarDocumentoSessao(finalSessionId);
-  markdownSessao = await compilarMarkdownSessao(registros, sessionDocAnterior);
-}
+    if (registros.length === 0) {
+      return res.status(404).json({
+        erro: 'Nenhum registro encontrado para esta sessão',
+        session_id: finalSessionId
+      });
+    }
 
-    // Buscar documento de sessão anterior (se existir)
-    const sessionDocAnterior = await buscarDocumentoSessao(finalSessionId);
-
-    // Compilar markdown da sessão
-    const markdownSessao = await compilarMarkdownSessao(registros, sessionDocAnterior || undefined);
-
-    // Verificar tamanho e dividir se necessário
-    const sessionDocuments = await processarDocumentoSessao(
-      markdownSessao, 
-      finalSessionId, 
-      max_size_kb
-    );
-
-    // SEMPRE criar/atualizar documento consolidado (obrigatório)
+/atualizar documento consolidado (obrigatório)
     const consolidatedDoc = await processarDocumentoConsolidado(
       markdownSessao, 
       finalSessionId, 
