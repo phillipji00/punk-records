@@ -2,10 +2,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { getDbPool, initializeDatabase, getRegistrosPorSession, insertRegistro, generateSessionId } from '../lib/dbClient';
 import { IntelligentMarkdownMerger } from './markdownMerger';
 
-
 interface SessionCompileRequest {
   session_id?: string;
-  criar_consolidado?: boolean;
   max_size_kb?: number;
 }
 
@@ -18,7 +16,7 @@ interface CompilationResult {
       size_kb: number;
       parts?: number;
     };
-    consolidated_document?: {
+    consolidated_document: {
       id_registro: string;
       size_kb: number;
       total_sessions: number;
@@ -81,13 +79,12 @@ export default async function handler(
       max_size_kb
     );
 
-// SEMPRE criar/atualizar documento consolidado (obrigatório)
-const consolidatedDoc = await processarDocumentoConsolidado(
-  markdownSessao, 
-  finalSessionId, 
-  max_size_kb
-);
-    }
+    // SEMPRE criar/atualizar documento consolidado (obrigatório)
+    const consolidatedDoc = await processarDocumentoConsolidado(
+      markdownSessao, 
+      finalSessionId, 
+      max_size_kb
+    );
 
     // Coletar casos únicos processados
     const casosIncluidos = [...new Set(registros.map(r => r.id_caso))];
@@ -101,11 +98,11 @@ const consolidatedDoc = await processarDocumentoConsolidado(
           size_kb: sessionDocuments[0].size_kb,
           parts: sessionDocuments.length > 1 ? sessionDocuments.length : undefined
         },
-        consolidated_document: consolidatedDoc ? {
+        consolidated_document: {
           id_registro: consolidatedDoc.id_registro,
           size_kb: consolidatedDoc.size_kb,
           total_sessions: consolidatedDoc.total_sessions
-        } : undefined
+        }
       },
       registros_processados: registros.length,
       metadata: {
@@ -140,7 +137,7 @@ function generateDailySessionId(): string {
 }
 
 // Buscar documento de sessão anterior
-async function buscarDocumentoSessao(sessionId: string) {
+async function buscarDocumentoSessao(sessionId: string): Promise<string | null> {
   const pool = getDbPool();
   const client = await pool.connect();
   
@@ -178,15 +175,15 @@ async function compilarMarkdownSessao(registros: any[], documentoAnterior?: stri
   for (const [idCaso, registrosCaso] of Object.entries(casosAgrupados)) {
     markdown += `## ${formatarNomeCaso(idCaso)}\n\n`;
     
-    const hipoteses = registrosCaso.filter(r => r.tipo_registro === 'hipotese');
-    const evidencias = registrosCaso.filter(r => r.tipo_registro === 'evidencia');
-    const personagens = registrosCaso.filter(r => r.tipo_registro === 'perfil_personagem');
-    const timeline = registrosCaso.filter(r => r.tipo_registro === 'entrada_timeline');
-    const outros = registrosCaso.filter(r => r.tipo_registro === 'registro_misc');
+    const hipoteses = registrosCaso.filter((r: any) => r.tipo_registro === 'hipotese');
+    const evidencias = registrosCaso.filter((r: any) => r.tipo_registro === 'evidencia');
+    const personagens = registrosCaso.filter((r: any) => r.tipo_registro === 'perfil_personagem');
+    const timeline = registrosCaso.filter((r: any) => r.tipo_registro === 'entrada_timeline');
+    const outros = registrosCaso.filter((r: any) => r.tipo_registro === 'registro_misc');
 
     if (hipoteses.length > 0) {
       markdown += `### Hipóteses Investigativas\n\n`;
-      hipoteses.forEach((h, i) => {
+      hipoteses.forEach((h: any, i: number) => {
         const dados = h.dados;
         markdown += `**${i + 1}.** ${dados.hipotese}\n`;
         if (dados.justificativa) {
@@ -204,7 +201,7 @@ async function compilarMarkdownSessao(registros: any[], documentoAnterior?: stri
 
     if (evidencias.length > 0) {
       markdown += `### Evidências Coletadas\n\n`;
-      evidencias.forEach((e, i) => {
+      evidencias.forEach((e: any, i: number) => {
         const dados = e.dados;
         markdown += `**${i + 1}.** ${dados.descricao}\n`;
         if (dados.origem) {
@@ -219,7 +216,7 @@ async function compilarMarkdownSessao(registros: any[], documentoAnterior?: stri
 
     if (personagens.length > 0) {
       markdown += `### Perfis de Personagens\n\n`;
-      personagens.forEach((p, i) => {
+      personagens.forEach((p: any, i: number) => {
         const dados = p.dados;
         markdown += `**${dados.nome}**\n`;
         if (dados.motivacoes) {
@@ -235,8 +232,8 @@ async function compilarMarkdownSessao(registros: any[], documentoAnterior?: stri
     if (timeline.length > 0) {
       markdown += `### Linha do Tempo\n\n`;
       timeline
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-        .forEach((t, i) => {
+        .sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+        .forEach((t: any, i: number) => {
           const dados = t.dados;
           markdown += `**${dados.horario || 'Horário indefinido'}** - ${dados.descricao}\n`;
           markdown += `*Registrado por:* ${t.especialista} em ${new Date(t.timestamp).toLocaleDateString('pt-BR')}\n\n`;
@@ -245,7 +242,7 @@ async function compilarMarkdownSessao(registros: any[], documentoAnterior?: stri
 
     if (outros.length > 0) {
       markdown += `### Registros Diversos\n\n`;
-      outros.forEach((o, i) => {
+      outros.forEach((o: any, i: number) => {
         const dados = o.dados;
         if (dados.conteudo && !dados.conteudo.includes('TIPO_DOCUMENTO: session_compilation')) {
           markdown += `**Registro ${i + 1}**\n`;
@@ -259,20 +256,20 @@ async function compilarMarkdownSessao(registros: any[], documentoAnterior?: stri
   }
 
   // Merge com documento anterior se existir
-if (documentoAnterior) {
-  const mergeResult = IntelligentMarkdownMerger.mergeDocuments(
-    documentoAnterior, 
-    markdown
-  );
-  
-  // Log das mudanças (opcional)
-  console.log('Merge Statistics:', mergeResult.statistics);
-  console.log('Changes:', mergeResult.changeLog);
-  
-  return mergeResult.mergedMarkdown;
-}
+  if (documentoAnterior) {
+    const mergeResult = IntelligentMarkdownMerger.mergeDocuments(
+      documentoAnterior, 
+      markdown
+    );
+    
+    // Log das mudanças (opcional)
+    console.log('Merge Statistics:', mergeResult.statistics);
+    console.log('Changes:', mergeResult.changeLog);
+    
+    return mergeResult.mergedMarkdown;
+  }
 
-return markdown;
+  return markdown;
 }
 
 // Processar documento de sessão (com split se necessário)
@@ -309,7 +306,7 @@ async function processarDocumentoConsolidado(
   markdownSessao: string, 
   sessionId: string, 
   maxSizeKb: number
-): Promise<{id_registro: string; size_kb: number; total_sessions: number} | null> {
+): Promise<{id_registro: string; size_kb: number; total_sessions: number}> {
   // Buscar consolidado anterior
   const consolidadoAnterior = await buscarDocumentoConsolidado();
   
@@ -364,8 +361,8 @@ async function salvarDocumentoSessao(markdown: string, sessionId: string): Promi
 }
 
 // Funções auxiliares
-function agruparRegistrosPorCaso(registros: any[]) {
-  return registros.reduce((acc, registro) => {
+function agruparRegistrosPorCaso(registros: any[]): { [key: string]: any[] } {
+  return registros.reduce((acc: { [key: string]: any[] }, registro: any) => {
     if (!acc[registro.id_caso]) {
       acc[registro.id_caso] = [];
     }
@@ -379,8 +376,6 @@ function formatarNomeCaso(idCaso: string): string {
     .replace(/_/g, ' ')
     .replace(/\b\w/g, l => l.toUpperCase());
 }
-
-
 
 function splitMarkdownInteligente(markdown: string, parts: number): string[] {
   const linhas = markdown.split('\n');

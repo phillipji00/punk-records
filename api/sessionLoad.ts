@@ -47,32 +47,30 @@ export default async function handler(
       incluir_metadata = 'true'
     } = req.query;
 
-    let resultado: SessionLoadResponse;
+    // SEMPRE tentar carregar consolidado primeiro
+    let resultado = await carregarDocumentoConsolidado(incluir_metadata === 'true');
 
-   // SEMPRE tentar carregar consolidado primeiro
-let resultado = await carregarDocumentoConsolidado(incluir_metadata === 'true');
-
-// Se consolidado não existir, então buscar por tipo específico
-if (!resultado.document_found) {
-  switch (tipo) {
-    case 'session':
-      if (!session_id || typeof session_id !== 'string') {
-        return res.status(400).json({
-          erro: 'session_id é obrigatório quando consolidado não existe e tipo=session'
-        });
+    // Se consolidado não existir, então buscar por tipo específico
+    if (!resultado.document_found) {
+      switch (tipo) {
+        case 'session':
+          if (!session_id || typeof session_id !== 'string') {
+            return res.status(400).json({
+              erro: 'session_id é obrigatório quando consolidado não existe e tipo=session'
+            });
+          }
+          resultado = await carregarDocumentoSessao(session_id, incluir_metadata === 'true');
+          break;
+          
+        case 'latest':
+          resultado = await carregarUltimaSessao(incluir_metadata === 'true');
+          break;
+          
+        default:
+          // Se consolidado não existe e não especificou tipo válido, tentar última sessão
+          resultado = await carregarUltimaSessao(incluir_metadata === 'true');
       }
-      resultado = await carregarDocumentoSessao(session_id, incluir_metadata === 'true');
-      break;
-      
-    case 'latest':
-      resultado = await carregarUltimaSessao(incluir_metadata === 'true');
-      break;
-      
-    default:
-      // Se consolidado não existe e não especificou tipo válido, tentar última sessão
-      resultado = await carregarUltimaSessao(incluir_metadata === 'true');
-  }
-}
+    }
 
     resultado.metadata = {
       load_timestamp: new Date().toISOString(),
@@ -325,7 +323,7 @@ function extrairMetadataConsolidado(conteudo: string): any {
   const metadata: any = {};
   
   // Extrair informações do cabeçalho
-  let casosIncluidos = [];
+  let casosIncluidos: string[] = [];
   let totalSessoes = 0;
   
   // Contar sessões (## dia)
