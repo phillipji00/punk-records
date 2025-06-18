@@ -52,7 +52,6 @@ export default async function handler(
 
     const { 
       session_id, 
-      criar_consolidado = true,
       max_size_kb = 100
     }: SessionCompileRequest = req.body;
 
@@ -82,14 +81,12 @@ export default async function handler(
       max_size_kb
     );
 
-    // Buscar e atualizar documento consolidado
-    let consolidatedDoc = null;
-    if (criar_consolidado) {
-      consolidatedDoc = await processarDocumentoConsolidado(
-        markdownSessao, 
-        finalSessionId, 
-        max_size_kb
-      );
+// SEMPRE criar/atualizar documento consolidado (obrigatório)
+const consolidatedDoc = await processarDocumentoConsolidado(
+  markdownSessao, 
+  finalSessionId, 
+  max_size_kb
+);
     }
 
     // Coletar casos únicos processados
