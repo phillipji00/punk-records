@@ -59,14 +59,25 @@ export default async function handler(
     // Buscar todos os registros da sessão
     const registros = await getRegistrosPorSession(finalSessionId);
 
+    // Determinar o markdown da sessão
+    let markdownSessao: string;
     if (registros.length === 0) {
-      return res.status(404).json({
-        erro: 'Nenhum registro encontrado para esta sessão',
-        session_id: finalSessionId
-      });
+      // Criar documento básico para sessão vazia
+      markdownSessao = gerarMarkdownSessaoVazia(finalSessionId);
+    } else {
+      // Buscar documento anterior e compilar normalmente
+      const sessionDocAnterior = await buscarDocumentoSessao(finalSessionId);
+      markdownSessao = await compilarMarkdownSessao(registros, sessionDocAnterior || undefined);
     }
 
-/atualizar documento consolidado (obrigatório)
+    // Verificar tamanho e dividir se necessário
+    const sessionDocuments = await processarDocumentoSessao(
+      markdownSessao, 
+      finalSessionId, 
+      max_size_kb
+    );
+
+    // SEMPRE criar/atualizar documento consolidado (obrigatório)
     const consolidatedDoc = await processarDocumentoConsolidado(
       markdownSessao, 
       finalSessionId, 
@@ -118,7 +129,6 @@ export default async function handler(
 
 // Gerar session_id baseado no dia atual
 function generateDailySessionId(): string {
-  const hoje = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const dayNumber = new Date().getDate().toString().padStart(2, '0');
   return `dia${dayNumber}`;
 }
