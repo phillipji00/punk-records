@@ -70,7 +70,7 @@ export default async function handler(
     const sessionDocAnterior = await buscarDocumentoSessao(finalSessionId);
 
     // Compilar markdown da sessão
-    const markdownSessao = await compilarMarkdownSessao(registros, sessionDocAnterior);
+    const markdownSessao = await compilarMarkdownSessao(registros, sessionDocAnterior || undefined);
 
     // Verificar tamanho e dividir se necessário
     const sessionDocuments = await processarDocumentoSessao(
@@ -87,7 +87,7 @@ export default async function handler(
     );
 
     // Coletar casos únicos processados
-    const casosIncluidos = [...new Set(registros.map(r => r.id_caso))];
+    const casosIncluidos = [...new Set(registros.map((r: any) => r.id_caso))];
 
     const resultado: CompilationResult = {
       session_id: finalSessionId,
@@ -108,7 +108,7 @@ export default async function handler(
       metadata: {
         compilation_timestamp: new Date().toISOString(),
         processing_time_ms: Date.now() - startTime,
-        cases_included: casosIncluidos
+        cases_included: casosIncluidos as string[]
       }
     };
 
